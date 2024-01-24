@@ -1,1 +1,6 @@
 gdelt_data
+gdelt_data_event
+labeled sources.pkl
+mixt_labeled_articles.pkl
+mixt_labeled_sources.pkl
+urls_to_download_fr.pkl
