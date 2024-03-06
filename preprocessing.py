@@ -77,16 +77,30 @@ class Preprocessing():
         y = labels_sorted["is_fake"]#.apply(lambda x:int(x) if not pd.isna(x) else x )
         labels_sorted = labels_sorted[["random"]]
 
-        df_article = pd.DataFrame(df_mentions["MentionIdentifier"])
-        label_encoder_article = LabelEncoder()
-        df_article['MentionIdentifier'] = label_encoder_article.fit_transform(df_article['MentionIdentifier'])
-        label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
-
-        df_article_sorted = df_article.sort_values(by="MentionIdentifier").set_index("MentionIdentifier")
-        df_article_sorted = df_article_sorted.reset_index(drop=False)
-        mapping_article = df_article_sorted["MentionIdentifier"]
-        df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
-        df_article_sorted = df_article_sorted[["random"]]
+        if self.label == "source":
+            df_article = pd.DataFrame(df_mentions["MentionIdentifier"])
+            label_encoder_article = LabelEncoder()
+            df_article['MentionIdentifier'] = label_encoder_article.fit_transform(df_article['MentionIdentifier'])
+            label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+            df_article_sorted = df_article.sort_values(by="MentionIdentifier").set_index("MentionIdentifier")
+            df_article_sorted = df_article_sorted.reset_index(drop=False)
+            mapping_article = df_article_sorted["MentionIdentifier"]
+            df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
+            df_article_sorted = df_article_sorted[["random"]]
+            
+        elif self.label == "article":
+            df_article = pd.DataFrame(df_mentions["MentionSourceName"])
+            label_encoder_article = LabelEncoder()
+            df_article["MentionSourceName"] = label_encoder_article.fit_transform(df_article["MentionSourceName"])
+            label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+            df_article_sorted = df_article.sort_values(by="MentionSourceName").set_index("MentionSourceName")
+            df_article_sorted = df_article_sorted.reset_index(drop=False)
+            mapping_article = df_article_sorted["MentionSourceName"]
+            df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
+            df_article_sorted = df_article_sorted[["random"]]
+            
+        else:
+            raise ValueError("label should be either 'source' or 'article'")
 
         label_encoder_event = LabelEncoder()
         df_events['GlobalEventID'] = label_encoder_event.fit_transform(df_events['GlobalEventID'])
@@ -105,11 +119,17 @@ class Preprocessing():
 
         est_source_de = df_mentions[["MentionSourceName","MentionIdentifier"]]
 
-        article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
-        est_source_de["MentionIdentifier"] = est_source_de["MentionIdentifier"].map(article_map["index"]).astype(int)
-
-        source_map = mapping_source.reset_index().set_index("links").to_dict()
-        est_source_de["MentionSourceName"] = est_source_de["MentionSourceName"].map(source_map["index"]).astype(int)
+        if self.label == "source":
+            article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
+            est_source_de["MentionIdentifier"] = est_source_de["MentionIdentifier"].map(article_map["index"]).astype(int)
+            source_map = mapping_source.reset_index().set_index("links").to_dict()
+            est_source_de["MentionSourceName"] = est_source_de["MentionSourceName"].map(source_map["index"]).astype(int)
+        
+        elif self.label == "article":
+            article_map = mapping_article.reset_index().set_index("MentionSourceName").to_dict()
+            est_source_de["MentionSourceName"] = est_source_de["MentionSourceName"].map(article_map["index"]).astype(int)
+            source_map = mapping_source.reset_index().set_index("links").to_dict()
+            est_source_de["MentionIdentifier"] = est_source_de["MentionIdentifier"].map(source_map["index"]).astype(int)
 
         edge_est_source_de = est_source_de[["MentionSourceName", "MentionIdentifier"]].values.transpose()
 

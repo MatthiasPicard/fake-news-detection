@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 if __name__ == "__main__":
     
-    label = "source"
+    label = "article"
     list_mention = ["gdelt_data/20231001000000.mentions.CSV","gdelt_data/20231001001500.mentions.CSV"]
     list_event = ["gdelt_data_event/20231001000000.export.CSV","gdelt_data_event/20231001001500.export.CSV"]
     
