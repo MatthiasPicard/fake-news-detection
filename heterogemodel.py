@@ -6,10 +6,11 @@ from torch_geometric.data import Data
 import torch.nn as nn
 
 class HAN(torch.nn.Module):
-    def __init__(self, in_channels: int=-1, hidden_channels: int=64,
+    def __init__(self,label, in_channels: int=-1, hidden_channels: int=64,
               out_channels: int=2, n_heads=4, metadata=None,dropout = 0.5):
         super(HAN, self).__init__()
         torch.manual_seed(12345)
+        self.label = label
         self.han_conv_0 = HANConv(in_channels,
                                hidden_channels,
                                heads=n_heads,
@@ -28,7 +29,7 @@ class HAN(torch.nn.Module):
         # print(x)
         # x = x.relu()
         # x = self.han_conv_1(x, edge_index_dict)
-        x = self.lin(x['source'])
+        x = self.lin(x[self.label])
 
         return x
 

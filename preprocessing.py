@@ -65,7 +65,8 @@ class Preprocessing():
     def _define_features(self): # TODO: function to retrieve features for events,sources
         pass
     
-    def create_graph(self,labels,df_events,df_mentions):
+    # TODO: 
+    def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
         label_encoder_source = LabelEncoder()
         labels['links'] = label_encoder_source.fit_transform(labels['links'])
@@ -111,12 +112,15 @@ class Preprocessing():
         mapping_event = df_events_sorted["GlobalEventID"]
         df_events_sorted = df_events_sorted.drop("GlobalEventID",axis = 1)
 
-        df_mentions['MentionIdentifier'] = df_mentions['MentionIdentifier'].map(label_mapping_article)
-        df_mentions['MentionSourceName'] = df_mentions['MentionSourceName'].map(label_mapping_source)
+        if self.label == "source": 
+            df_mentions['MentionIdentifier'] = df_mentions['MentionIdentifier'].map(label_mapping_article)
+            df_mentions['MentionSourceName'] = df_mentions['MentionSourceName'].map(label_mapping_source)
+        elif self.label == "article":
+            df_mentions['MentionSourceName'] = df_mentions['MentionSourceName'].map(label_mapping_article)
+            df_mentions['MentionIdentifier'] = df_mentions['MentionIdentifier'].map(label_mapping_source)
+            
         df_mentions['GlobalEventID'] = df_mentions['GlobalEventID'].map(label_mapping_event)
-
         df_mentions = df_mentions.dropna(subset = ["GlobalEventID"]) # because we encoded on events -> try to change that
-
         est_source_de = df_mentions[["MentionSourceName","MentionIdentifier"]]
 
         if self.label == "source":
@@ -137,12 +141,17 @@ class Preprocessing():
 
         mentionné = df_mentions[["GlobalEventID","MentionIdentifier"]]
 
-        article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
-        mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(article_map["index"]).astype(int)
+        if self.label == "source":
+            article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
+            mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(article_map["index"]).astype(int)
+            event_map = mapping_source.reset_index().set_index("links").to_dict()
 
-        event_map = mapping_source.reset_index().set_index("links").to_dict()
+        elif self.label == "article":
+            source_map = mapping_source.reset_index().set_index("links").to_dict()
+            mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(source_map["index"]).astype(int)
+            event_map = mapping_source.reset_index().set_index("links").to_dict()
+
         mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"]).astype(int)
-
         edge_mentionné = mentionné[["GlobalEventID", "MentionIdentifier"]].values.transpose()
 
         # Create attributes for the mentionné edges
@@ -156,8 +165,13 @@ class Preprocessing():
         labels_sorted_temp["y"] = y
 
         data = HeteroData()
-        data['article'].x = torch.from_numpy(df_article_sorted.to_numpy()).to(dtype=torch.float32)
-        data['source'].x = torch.from_numpy(labels_sorted_temp.to_numpy()).to(dtype=torch.float32)
+        if self.label == "source":
+            data['article'].x = torch.from_numpy(df_article_sorted.to_numpy()).to(dtype=torch.float32)
+            data['source'].x = torch.from_numpy(labels_sorted_temp.to_numpy()).to(dtype=torch.float32)
+        elif self.label == "article":
+            data['source'].x = torch.from_numpy(df_article_sorted.to_numpy()).to(dtype=torch.float32)
+            data['article'].x = torch.from_numpy(labels_sorted_temp.to_numpy()).to(dtype=torch.float32)
+        
         # data['source'].y = y
         data['event'].x = torch.from_numpy(df_events_sorted_temp.to_numpy()).to(dtype=torch.float32)
 
@@ -187,10 +201,13 @@ class Preprocessing():
         data_undirected[self.label].train_mask = train_mask
         data_undirected[self.label].test_mask = test_mask
         data_undirected[self.label].y = torch.from_numpy(data_undirected[self.label].y.to_numpy())
-        
-        return data_undirected
-
-
+        if mode == "analyse":
+            if self.label == "source":
+                return df_article_sorted,labels_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
+            if self.label == "article":
+                return labels_sorted,df_article_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
+        else:
+            return data_undirected
 # def create_graph(labels,df_mentions,df_events):
     
 #     # Encoding and creating the map for df_sources

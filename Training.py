@@ -3,14 +3,15 @@ import torch.nn.functional as F
 
 class Training():
     
-    def __init__(self,data,model,optimizer,nb_epoch):
+    def __init__(self,data,model,optimizer,nb_epoch,label):
         self.data = data
         self.model = model
         self.optimizer = optimizer
         self.nb_epoch = nb_epoch
+        self.label = label
         
     def train(self):
-        
+
         with torch.no_grad():
             out = self.model(self.data.x_dict, self.data.edge_index_dict)
         
@@ -23,11 +24,11 @@ class Training():
         self.model.train()
         self.optimizer.zero_grad()
         out = self.model(self.data.x_dict, self.data.edge_index_dict)
-        mask = self.data['source'].train_mask
+        mask = self.data[self.label].train_mask
         # print(mask)
         # print(out)
         # print(self.data['source'].y[mask])
-        loss = F.cross_entropy(out[mask], self.data['source'].y[mask].long())
+        loss = F.cross_entropy(out[mask], self.data[self.label].y[mask].long())
         loss.backward()
         self.optimizer.step()
         return float(loss)
@@ -39,8 +40,8 @@ class Training():
 
         accs = []
         for split in ['train_mask', 'test_mask']:
-            mask = self.data['source'][split]
-            acc = (pred[mask] == self.data['source'].y[mask]).sum() / mask.sum()
+            mask = self.data[self.label][split]
+            acc = (pred[mask] == self.data[self.label].y[mask]).sum() / mask.sum()
             accs.append(float(acc))
         return accs
     

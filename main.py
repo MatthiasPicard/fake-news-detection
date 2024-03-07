@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 if __name__ == "__main__":
     
-    label = "article"
+    label = "source"
     list_mention = ["gdelt_data/20231001000000.mentions.CSV","gdelt_data/20231001001500.mentions.CSV"]
     list_event = ["gdelt_data_event/20231001000000.export.CSV","gdelt_data_event/20231001001500.export.CSV"]
     
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
     data = preprocessing.create_graph(labels,df_events,df_mentions)
     
-    model = HAN(metadata = data.metadata(),
+    model = HAN(label,metadata = data.metadata(),
                 hidden_channels=hidden_channels,
                 out_channels=out_channels,
                 n_heads=n_heads,
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     
     data, model = data.to(device), model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    training_process = Training(data,model,optimizer,nb_epoch)
+    training_process = Training(data,model,optimizer,nb_epoch,label)
     training_process.train()
     
     # TODO: create a function to save model
