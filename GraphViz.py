@@ -1,23 +1,28 @@
 import networkx as nx
-from Preprocessing import Preprocessing
+from Preprocessing import SimplePreprocessing
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
+#TODO still kinda experimental
 class GraphViz():
     def __init__(self,label,list_event,list_mention):
         self.label = label
         self.list_event = list_event
         self.list_mention = list_mention
+        
+        self.data_undirected,self.df_article_sorted,self.labels_sorted,self.df_events_sorted_temp,self.edge_mentionné,self.edge_est_source_de,self.y = self._retrieve_data_for_viz()
     
     def _retrieve_data_for_viz(self):
-        preprocessing = Preprocessing(self.label)
+        preprocessing = SimplePreprocessing(self.label)
         labels,df_events,df_mentions = preprocessing.data_load(self.list_event,self.list_mention)
         return preprocessing.create_graph(labels,df_events,df_mentions,mode="analyse")
     
+    def get_recap(self):
+        print(pd.Series(self.data_undirected[self.label].y).value_counts(dropna=False))
+    
     def display_graph(self):
-        
-        df_article_sorted,labels_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y = self._retrieve_data_for_viz()
-        
+                
         G = nx.MultiDiGraph()
 
         ag_list = []
@@ -25,30 +30,30 @@ class GraphViz():
         sgf_list = []
         sgn_list = []
         eg_list = []
-        for i, row in df_article_sorted.iterrows():
+        for i, row in self.df_article_sorted.iterrows():
             G.add_node(f"{i}_a", node_type='article', x=row.to_numpy().astype(np.float32))
             if self.label == "article":
-                if y[i] == 1:
+                if self.y[i] == 1:
                     sgf_list.append(f"{i}_a")
-                if y[i] == 0:
+                if self.y[i] == 0:
                     sgt_list.append(f"{i}_a")
                 else:
                     sgn_list.append(f"{i}_a")         
             else: 
                 ag_list.append(f"{i}_a")
                 
-        for i, row in labels_sorted.iterrows():
+        for i, row in self.labels_sorted.iterrows():
             G.add_node(f"{i}_s", node_type='source', x=row.to_numpy().astype(np.float32))
             if self.label == "source":
-                if y[i] == 1:
+                if self.y[i] == 1:
                     sgf_list.append(f"{i}_s")
-                if y[i] == 0:
+                if self.y[i] == 0:
                     sgt_list.append(f"{i}_s")
                 else:
                     sgn_list.append(f"{i}_s")
             else: 
                 ag_list.append(f"{i}_s")
-        for i, row in df_events_sorted_temp.iterrows():
+        for i, row in self.df_events_sorted_temp.iterrows():
             G.add_node(f"{i}_e", node_type='event', x=row.to_numpy().astype(np.float32))
             eg_list.append(f"{i}_e")
 
@@ -64,8 +69,8 @@ class GraphViz():
             elif row_index == 1:
                 return str(element) + '_a'
         
-        edge_mentionné_appended = np.vectorize(append_suffix_mentionne)(edge_mentionné, np.indices(edge_mentionné.shape)[0])
-        edge_est_source_de_appended = np.vectorize(append_suffix_edge_est_source_de)(edge_est_source_de, np.indices(edge_est_source_de.shape)[0])
+        edge_mentionné_appended = np.vectorize(append_suffix_mentionne)(self.edge_mentionné, np.indices(self.edge_mentionné.shape)[0])
+        edge_est_source_de_appended = np.vectorize(append_suffix_edge_est_source_de)(self.edge_est_source_de, np.indices(self.edge_est_source_de.shape)[0])
 
 
         G.add_edges_from(edge_mentionné_appended.transpose())
@@ -128,11 +133,3 @@ class GraphViz():
             )
         plt.show()
         
-if __name__ == "__main__":
-    
-    label = "article"
-    list_mention = ["gdelt_data/20231001000000.mentions.CSV","gdelt_data/20231001001500.mentions.CSV"]
-    list_event = ["gdelt_data_event/20231001000000.export.CSV","gdelt_data_event/20231001001500.export.CSV"]
-    
-    analyse = GraphViz(label,list_event,list_mention)
-    analyse.display_graph()

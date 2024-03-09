@@ -6,7 +6,7 @@ from torch_geometric.data import HeteroData
 import torch
 import pickle
 import torch_geometric.transforms as T
-
+from abc import ABC, abstractmethod
 
 COL_NAMES_MENTIONS = ["GlobalEventID", "EventTimeDate", "MentionTimeDate", "MentionType",
                           "MentionSourceName", "MentionIdentifier", "SentenceID", "Actor1CharOffset", "Actor2CharOffset",
@@ -33,7 +33,24 @@ COL_NAMES_EVENTS = ["GlobalEventID", "Day", "MonthYear", "Year", "FractionDate",
                     "SOURCEURL"]  # event columns
 
 
-class Preprocessing():
+class Preprocessing(ABC):
+    
+    @abstractmethod
+    def __init__(self):
+        pass
+    
+    @abstractmethod
+    def data_load(self):
+        pass
+    
+    @abstractmethod
+    def create_graph(self):
+        pass
+    
+    
+
+class SimplePreprocessing(Preprocessing):
+    
     def __init__(self,label):
         self.label = label
     
@@ -65,7 +82,6 @@ class Preprocessing():
     def _define_features(self): # TODO: function to retrieve features for events,sources
         pass
     
-    # TODO: 
     def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
         label_encoder_source = LabelEncoder()
@@ -203,11 +219,12 @@ class Preprocessing():
         data_undirected[self.label].y = torch.from_numpy(data_undirected[self.label].y.to_numpy())
         if mode == "analyse":
             if self.label == "source":
-                return df_article_sorted,labels_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
+                return data_undirected,df_article_sorted,labels_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
             if self.label == "article":
-                return labels_sorted,df_article_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
+                return data_undirected,labels_sorted,df_article_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
         else:
             return data_undirected
+        
 # def create_graph(labels,df_mentions,df_events):
     
 #     # Encoding and creating the map for df_sources
