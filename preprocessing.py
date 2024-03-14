@@ -7,6 +7,8 @@ import torch
 import pickle
 import torch_geometric.transforms as T
 from abc import ABC, abstractmethod
+from itertools import product
+
 
 COL_NAMES_MENTIONS = ["GlobalEventID", "EventTimeDate", "MentionTimeDate", "MentionType",
                           "MentionSourceName", "MentionIdentifier", "SentenceID", "Actor1CharOffset", "Actor2CharOffset",
@@ -33,26 +35,16 @@ COL_NAMES_EVENTS = ["GlobalEventID", "Day", "MonthYear", "Year", "FractionDate",
                     "SOURCEURL"]  # event columns
 
 
-class Preprocessing(ABC):
-    
-    @abstractmethod
-    def __init__(self):
-        pass
-    
-    @abstractmethod
-    def data_load(self):
-        pass
-    
-    @abstractmethod
-    def create_graph(self):
-        pass
-    
-    
-
-class SimplePreprocessing(Preprocessing):
+class Preprocessing():
     
     def __init__(self,label):
         self.label = label
+        if  self.label == "source":
+            self.label_column = "MentionSourceName"
+            self.non_label_column = "MentionIdentifier"
+        elif self.label == 'article':
+            self.label_column = "MentionIdentifier"
+            self.non_label_column = "MentionSourceName"
     
     def data_load(self,list_event,list_mention):
     
@@ -82,7 +74,8 @@ class SimplePreprocessing(Preprocessing):
     def _define_features(self): # TODO: function to retrieve features for events,sources
         pass
     
-    def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
+    def _create_label_node(self,labels,df_mentions): 
+        # NOTE variable names are misleading if self.label = article
         
         label_encoder_source = LabelEncoder()
         labels['links'] = label_encoder_source.fit_transform(labels['links'])
@@ -93,32 +86,42 @@ class SimplePreprocessing(Preprocessing):
         labels_sorted["random"] = np.random.rand(len(labels_sorted))
         y = labels_sorted["is_fake"]#.apply(lambda x:int(x) if not pd.isna(x) else x )
         labels_sorted = labels_sorted[["random"]]
-
-        if self.label == "source":
-            df_article = pd.DataFrame(df_mentions["MentionIdentifier"])
-            label_encoder_article = LabelEncoder()
-            df_article['MentionIdentifier'] = label_encoder_article.fit_transform(df_article['MentionIdentifier'])
-            label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
-            df_article_sorted = df_article.sort_values(by="MentionIdentifier").set_index("MentionIdentifier")
-            df_article_sorted = df_article_sorted.reset_index(drop=False)
-            mapping_article = df_article_sorted["MentionIdentifier"]
-            df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
-            df_article_sorted = df_article_sorted[["random"]]
+        df_mentions[self.label_column] = df_mentions[self.label_column].map(label_mapping_source)
             
-        elif self.label == "article":
-            df_article = pd.DataFrame(df_mentions["MentionSourceName"])
-            label_encoder_article = LabelEncoder()
-            df_article["MentionSourceName"] = label_encoder_article.fit_transform(df_article["MentionSourceName"])
-            label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
-            df_article_sorted = df_article.sort_values(by="MentionSourceName").set_index("MentionSourceName")
-            df_article_sorted = df_article_sorted.reset_index(drop=False)
-            mapping_article = df_article_sorted["MentionSourceName"]
-            df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
-            df_article_sorted = df_article_sorted[["random"]]
-            
-        else:
-            raise ValueError("label should be either 'source' or 'article'")
+        return df_mentions,labels_sorted,mapping_source,y
+    
+    def _create_article_node(self,df_mentions):
+        
+        df_article = pd.DataFrame(df_mentions["MentionIdentifier"])
+        label_encoder_article = LabelEncoder()
+        df_article['MentionIdentifier'] = label_encoder_article.fit_transform(df_article['MentionIdentifier'])
+        label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+        df_article_sorted = df_article.sort_values(by="MentionIdentifier").set_index("MentionIdentifier")
+        df_article_sorted = df_article_sorted.reset_index(drop=False)
+        mapping_article = df_article_sorted["MentionIdentifier"]
+        df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
+        df_article_sorted = df_article_sorted[["random"]]
+        df_mentions[self.non_label_column] = df_mentions[self.non_label_column].map(label_mapping_article)
 
+        return df_mentions,mapping_article,df_article_sorted
+
+    def _create_source_node(self,df_mentions):
+        
+        df_article = pd.DataFrame(df_mentions["MentionSourceName"])
+        label_encoder_article = LabelEncoder()
+        df_article["MentionSourceName"] = label_encoder_article.fit_transform(df_article["MentionSourceName"])
+        label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+        df_article_sorted = df_article.sort_values(by="MentionSourceName").set_index("MentionSourceName")
+        df_article_sorted = df_article_sorted.reset_index(drop=False)
+        mapping_article = df_article_sorted["MentionSourceName"]
+        df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
+        df_article_sorted = df_article_sorted[["random"]]
+        df_mentions[self.non_label_column] = df_mentions[self.non_label_column].map(label_mapping_article)
+        
+        return df_mentions,mapping_article,df_article_sorted
+
+    def _create_event_edge(self,df_events,df_mentions):
+        
         label_encoder_event = LabelEncoder()
         df_events['GlobalEventID'] = label_encoder_event.fit_transform(df_events['GlobalEventID'])
         label_mapping_event = dict(zip(label_encoder_event.classes_, label_encoder_event.transform(label_encoder_event.classes_)))
@@ -127,195 +130,155 @@ class SimplePreprocessing(Preprocessing):
         df_events_sorted = df_events_sorted.reset_index(drop=False)
         mapping_event = df_events_sorted["GlobalEventID"]
         df_events_sorted = df_events_sorted.drop("GlobalEventID",axis = 1)
-
-        if self.label == "source": 
-            df_mentions['MentionIdentifier'] = df_mentions['MentionIdentifier'].map(label_mapping_article)
-            df_mentions['MentionSourceName'] = df_mentions['MentionSourceName'].map(label_mapping_source)
-        elif self.label == "article":
-            df_mentions['MentionSourceName'] = df_mentions['MentionSourceName'].map(label_mapping_article)
-            df_mentions['MentionIdentifier'] = df_mentions['MentionIdentifier'].map(label_mapping_source)
-            
         df_mentions['GlobalEventID'] = df_mentions['GlobalEventID'].map(label_mapping_event)
+        
+        return df_mentions,mapping_event, df_events_sorted
+  
+    def _create_est_source_de_edge(self,mapping_article,mapping_source):
+        
         df_mentions = df_mentions.dropna(subset = ["GlobalEventID"]) # because we encoded on events -> try to change that
         est_source_de = df_mentions[["MentionSourceName","MentionIdentifier"]]
 
-        if self.label == "source":
-            article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
-            est_source_de["MentionIdentifier"] = est_source_de["MentionIdentifier"].map(article_map["index"]).astype(int)
-            source_map = mapping_source.reset_index().set_index("links").to_dict()
-            est_source_de["MentionSourceName"] = est_source_de["MentionSourceName"].map(source_map["index"]).astype(int)
-        
-        elif self.label == "article":
-            article_map = mapping_article.reset_index().set_index("MentionSourceName").to_dict()
-            est_source_de["MentionSourceName"] = est_source_de["MentionSourceName"].map(article_map["index"]).astype(int)
-            source_map = mapping_source.reset_index().set_index("links").to_dict()
-            est_source_de["MentionIdentifier"] = est_source_de["MentionIdentifier"].map(source_map["index"]).astype(int)
-
+        article_map = mapping_article.reset_index().set_index(self.non_label_column).to_dict()
+        est_source_de[self.non_label_column] = est_source_de[self.non_label_column].map(article_map["index"]).astype(int)
+        source_map = mapping_source.reset_index().set_index("links").to_dict()
+        est_source_de[self.label_column] = est_source_de[self.label_column].map(source_map["index"]).astype(int)
         edge_est_source_de = est_source_de[["MentionSourceName", "MentionIdentifier"]].values.transpose()
-
-        # Mapping articles and events to create edges between these two
-
+    
+        return edge_est_source_de
+    
+    def _create_mentionne_edge(self,df_mentions,mapping_article,mapping_source):
+        
         mentionné = df_mentions[["GlobalEventID","MentionIdentifier"]]
 
         if self.label == "source":
             article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
             mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(article_map["index"]).astype(int)
-            event_map = mapping_source.reset_index().set_index("links").to_dict()
 
         elif self.label == "article":
             source_map = mapping_source.reset_index().set_index("links").to_dict()
             mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(source_map["index"]).astype(int)
-            event_map = mapping_source.reset_index().set_index("links").to_dict()
 
+        event_map = mapping_source.reset_index().set_index("links").to_dict()
         mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"]).astype(int)
         edge_mentionné = mentionné[["GlobalEventID", "MentionIdentifier"]].values.transpose()
-
-        # Create attributes for the mentionné edges
-
-        df_mentions_edges = df_mentions.drop(["GlobalEventID","MentionIdentifier","MentionSourceName"], axis = 1)
-
-        # temporarily remove almost all columns for simplicity
-        df_events_sorted_temp = df_events_sorted[["Day"]] 
-        df_mentions_edges_temp = df_mentions_edges[["EventTimeDate"]]
-        labels_sorted_temp = labels_sorted.copy()
-        labels_sorted_temp["y"] = y
-
-        data = HeteroData()
-        if self.label == "source":
-            data['article'].x = torch.from_numpy(df_article_sorted.to_numpy()).to(dtype=torch.float32)
-            data['source'].x = torch.from_numpy(labels_sorted_temp.to_numpy()).to(dtype=torch.float32)
-        elif self.label == "article":
-            data['source'].x = torch.from_numpy(df_article_sorted.to_numpy()).to(dtype=torch.float32)
-            data['article'].x = torch.from_numpy(labels_sorted_temp.to_numpy()).to(dtype=torch.float32)
-        
-        # data['source'].y = y
-        data['event'].x = torch.from_numpy(df_events_sorted_temp.to_numpy()).to(dtype=torch.float32)
-
-
-        # data['event', 'mentionne', 'article'].edge_attr = torch.from_numpy(df_mentions_edges_temp.to_numpy())
-
-        data['event', 'mentionne', 'article'].edge_index = torch.from_numpy(edge_mentionné).to(dtype=torch.long)
-        data['source', 'est_source_de', 'article'].edge_index = torch.from_numpy(edge_est_source_de).to(dtype=torch.long)
-
-        transform = T.RemoveIsolatedNodes()
-        data = transform(data)
-
-        data[self.label].y = pd.Series(data[self.label].x[:,1].numpy())
-        data[self.label].x = np.delete(data[self.label].x, 1, axis=1)
-
-        data_undirected = T.ToUndirected()(data)
-        # data_undirected = data
-
-        num_labels = len(data_undirected[self.label].y)
-        known_indices = np.where(~data_undirected[self.label].y.isna())[0]
-        known_labels = data_undirected[self.label].y[known_indices]
-        train_labels, test_labels, train_idx, test_idx = train_test_split(known_labels, known_indices, test_size=0.2, random_state=42)
-        train_mask = torch.zeros(num_labels, dtype=torch.bool)
-        test_mask = torch.zeros(num_labels, dtype=torch.bool)
-        train_mask[train_idx] = True
-        test_mask[test_idx] = True
-        data_undirected[self.label].train_mask = train_mask
-        data_undirected[self.label].test_mask = test_mask
-        data_undirected[self.label].y = torch.from_numpy(data_undirected[self.label].y.to_numpy())
-        if mode == "analyse":
-            if self.label == "source":
-                return data_undirected,df_article_sorted,labels_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
-            if self.label == "article":
-                return data_undirected,labels_sorted,df_article_sorted,df_events_sorted_temp,edge_mentionné,edge_est_source_de,y
-        else:
-            return data_undirected
-        
-# def create_graph(labels,df_mentions,df_events):
     
-#     # Encoding and creating the map for df_sources
+        return edge_mentionné,event_map
+    
+    def _same_column_edge(col,df_events,event_map):
+        
+        same_actions = df_events[["GlobalEventID",col]]
+        edge_same_event = torch.tensor([], dtype=torch.long)
+        while len(same_actions) > 0:
+            print(len(same_actions))
+            same_action_nodes = (same_actions[col] == same_actions.iloc[0][col])#.nonzero().squeeze()
+            cartesian_product = list(product(same_actions[same_action_nodes][col], repeat=2))
+            edges = [[x, y] for x, y in cartesian_product if x != y and cartesian_product.index((x, y)) < cartesian_product.index((y, x))]
+            edges_t = torch.tensor(list(zip(*edges)))
+            edge_same_event = torch.cat((edge_same_event, edges_t), dim=1)
+            same_actions = same_actions.drop(same_actions[same_action_nodes].index)
+        edge_same_event_0 = list(pd.DataFrame(edge_same_event).loc[0].map(event_map["index"]).astype(int))
+        edge_same_event_1 = list(pd.DataFrame(edge_same_event).loc[1].map(event_map["index"]).astype(int))
+        # print(edge_same_event_1)
+        edge_same_event = torch.tensor([edge_same_event_0,edge_same_event_1])
+        # print(edge_same_event)
+        return edge_same_event
+    
+    def _create_label_node(self,labels,df_mentions): 
+        # NOTE variable names are misleading if self.label = article
+        
+        label_encoder_source = LabelEncoder()
+        labels['links'] = label_encoder_source.fit_transform(labels['links'])
+        label_mapping_source = dict(zip(label_encoder_source.classes_, label_encoder_source.transform(label_encoder_source.classes_)))
+        labels_sorted = labels.sort_values(by="links").set_index("links")
+        labels_sorted = labels_sorted.reset_index(drop=False)
+        mapping_source = labels_sorted["links"]
+        labels_sorted["random"] = np.random.rand(len(labels_sorted))
+        y = labels_sorted["is_fake"]#.apply(lambda x:int(x) if not pd.isna(x) else x )
+        labels_sorted = labels_sorted[["random"]]
+        df_mentions[self.label_column] = df_mentions[self.label_column].map(label_mapping_source)
+            
+        return df_mentions,labels_sorted,mapping_source,y
+    
+    def _create_article_node(self,df_mentions):
+        
+        df_article = pd.DataFrame(df_mentions["MentionIdentifier"])
+        label_encoder_article = LabelEncoder()
+        df_article['MentionIdentifier'] = label_encoder_article.fit_transform(df_article['MentionIdentifier'])
+        label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+        df_article_sorted = df_article.sort_values(by="MentionIdentifier").set_index("MentionIdentifier")
+        df_article_sorted = df_article_sorted.reset_index(drop=False)
+        mapping_article = df_article_sorted["MentionIdentifier"]
+        df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
+        df_article_sorted = df_article_sorted[["random"]]
+        df_mentions[self.non_label_column] = df_mentions[self.non_label_column].map(label_mapping_article)
 
-#     label_encoder_source = LabelEncoder()
-#     labels['links'] = label_encoder_source.fit_transform(labels['links'])
-#     label_mapping_source = dict(
-#         zip(label_encoder_source.classes_, label_encoder_source.transform(label_encoder_source.classes_)))
-#     # labels['links'] = labels['links'].map(label_mapping_source)
+        return df_mentions,mapping_article,df_article_sorted
 
-#     labels_sorted = labels.sort_values(by="links").set_index("links")
-#     labels_sorted = labels_sorted.reset_index(drop=False)
-#     mapping_source = labels_sorted["links"]
-#     labels_sorted["random"] = np.random.rand(14442)
-#     y = labels_sorted["is_fake"]
-#     labels_sorted = labels_sorted[["random"]]
+    def _create_source_node(self,df_mentions):
+        
+        df_article = pd.DataFrame(df_mentions["MentionSourceName"])
+        label_encoder_article = LabelEncoder()
+        df_article["MentionSourceName"] = label_encoder_article.fit_transform(df_article["MentionSourceName"])
+        label_mapping_article = dict(zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+        df_article_sorted = df_article.sort_values(by="MentionSourceName").set_index("MentionSourceName")
+        df_article_sorted = df_article_sorted.reset_index(drop=False)
+        mapping_article = df_article_sorted["MentionSourceName"]
+        df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
+        df_article_sorted = df_article_sorted[["random"]]
+        df_mentions[self.non_label_column] = df_mentions[self.non_label_column].map(label_mapping_article)
+        
+        return df_mentions,mapping_article,df_article_sorted
 
-#     df_article = pd.DataFrame(df_mentions["MentionIdentifier"])
+    def _create_event_edge(self,df_events,df_mentions):
+        
+        label_encoder_event = LabelEncoder()
+        df_events['GlobalEventID'] = label_encoder_event.fit_transform(df_events['GlobalEventID'])
+        label_mapping_event = dict(zip(label_encoder_event.classes_, label_encoder_event.transform(label_encoder_event.classes_)))
+        # df_events['GlobalEventID'] = df_events['GlobalEventID'].map(label_mapping_event)
+        df_events_sorted = df_events.sort_values(by="GlobalEventID").set_index("GlobalEventID")
+        df_events_sorted = df_events_sorted.reset_index(drop=False)
+        mapping_event = df_events_sorted["GlobalEventID"]
+        df_events_sorted = df_events_sorted.drop("GlobalEventID",axis = 1)
+        df_mentions['GlobalEventID'] = df_mentions['GlobalEventID'].map(label_mapping_event)
+        
+        return df_mentions,mapping_event, df_events_sorted
+  
+    def _create_est_source_de_edge(self,mapping_article,mapping_source):
+        
+        df_mentions = df_mentions.dropna(subset = ["GlobalEventID"]) # because we encoded on events -> try to change that
+        est_source_de = df_mentions[["MentionSourceName","MentionIdentifier"]]
 
-#     label_encoder_article = LabelEncoder()
-#     df_article['MentionIdentifier'] = label_encoder_article.fit_transform(df_article['MentionIdentifier'])
-#     label_mapping_article = dict(
-#         zip(label_encoder_article.classes_, label_encoder_article.transform(label_encoder_article.classes_)))
+        article_map = mapping_article.reset_index().set_index(self.non_label_column).to_dict()
+        est_source_de[self.non_label_column] = est_source_de[self.non_label_column].map(article_map["index"]).astype(int)
+        source_map = mapping_source.reset_index().set_index("links").to_dict()
+        est_source_de[self.label_column] = est_source_de[self.label_column].map(source_map["index"]).astype(int)
+        edge_est_source_de = est_source_de[["MentionSourceName", "MentionIdentifier"]].values.transpose()
+    
+        return edge_est_source_de
+    
+    def _create_mentionne_edge(self,df_mentions,mapping_article,mapping_source):
+        
+        mentionné = df_mentions[["GlobalEventID","MentionIdentifier"]]
 
-#     df_article_sorted = df_article.sort_values(by="MentionIdentifier").set_index("MentionIdentifier")
-#     df_article_sorted = df_article_sorted.reset_index(drop=False)
-#     mapping_article = df_article_sorted["MentionIdentifier"]
-#     df_article_sorted["random"] = np.random.rand(1855)
-#     df_article_sorted = df_article_sorted[["random"]]
+        if self.label == "source":
+            article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
+            mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(article_map["index"]).astype(int)
 
-#     label_encoder_event = LabelEncoder()
-#     df_events['GlobalEventID'] = label_encoder_event.fit_transform(df_events['GlobalEventID'])
-#     label_mapping_event = dict(
-#         zip(label_encoder_event.classes_, label_encoder_event.transform(label_encoder_event.classes_)))
-#     #df_events['GlobalEventID'] = df_events['GlobalEventID'].map(label_mapping_event)
-#     df_events_sorted = df_events.sort_values(by="GlobalEventID").set_index("GlobalEventID")
-#     df_events_sorted = df_events_sorted.reset_index(drop=False)
-#     mapping_event = df_events_sorted["GlobalEventID"]
-#     df_events_sorted = df_events_sorted.drop("GlobalEventID", axis=1)
+        elif self.label == "article":
+            source_map = mapping_source.reset_index().set_index("links").to_dict()
+            mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(source_map["index"]).astype(int)
 
-#     label_encoder_event = LabelEncoder()
-#     df_events['GlobalEventID'] = label_encoder_event.fit_transform(df_events['GlobalEventID'])
-#     label_mapping_event = dict(
-#         zip(label_encoder_event.classes_, label_encoder_event.transform(label_encoder_event.classes_)))
-#     # df_events['GlobalEventID'] = df_events['GlobalEventID'].map(label_mapping_event)
-#     df_events_sorted = df_events.sort_values(by="GlobalEventID").set_index("GlobalEventID")
-#     df_events_sorted = df_events_sorted.reset_index(drop=False)
-#     mapping_event = df_events_sorted["GlobalEventID"]
-#     df_events_sorted = df_events_sorted.drop("GlobalEventID", axis=1)
+        event_map = mapping_source.reset_index().set_index("links").to_dict()
+        mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"]).astype(int)
+        edge_mentionné = mentionné[["GlobalEventID", "MentionIdentifier"]].values.transpose()
+    
+        return edge_mentionné,event_map
+    
+    @abstractmethod
+    def create_graph(self):
+        pass
+    
 
-#     # Mapping articles and sources to create edges between these two
 
-#     est_source_de = df_mentions[["MentionSourceName", "MentionIdentifier"]]
-
-#     article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
-#     est_source_de["MentionIdentifier"] = est_source_de["MentionIdentifier"].map(article_map["index"]).astype(int)
-
-#     source_map = mapping_source.reset_index().set_index("links").to_dict()
-#     est_source_de["MentionSourceName"] = est_source_de["MentionSourceName"].map(source_map["index"]).astype(int)
-
-#     edge_est_source_de = est_source_de[["MentionSourceName", "MentionIdentifier"]].values.transpose()
-
-#     # Mapping articles and events to create edges between these two
-
-#     mentionné = df_mentions[["GlobalEventID", "MentionIdentifier"]]
-
-#     article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
-#     mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(article_map["index"]).astype(int)
-
-#     event_map = mapping_source.reset_index().set_index("links").to_dict()
-#     mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"]).astype(int)
-
-#     edge_mentionné = mentionné[["GlobalEventID", "MentionIdentifier"]].values.transpose()
-
-#     # create attributes for the mentionné edges
-
-#     df_mentions_edges = df_mentions.drop(["GlobalEventID", "MentionIdentifier", "MentionSourceName"], axis=1)
-#     # Using only the first csv of events mentions and sources to start
-
-#     # temporarily remove almost all columns for simplicity
-#     df_events_sorted_temp = df_events_sorted[["Day"]]
-#     df_mentions_edges_temp = df_mentions_edges[["EventTimeDate"]]
-
-#     data = HeteroData()
-#     data['article'].x = torch.from_numpy(df_article_sorted.to_numpy())
-#     data['source'].x = torch.from_numpy(labels_sorted.to_numpy())
-#     data['event'].x = torch.from_numpy(df_events_sorted_temp.to_numpy())
-
-#     data['event', 'mentionne', 'article'].edge_attr = torch.from_numpy(df_mentions_edges_temp.to_numpy())
-
-#     data['event', 'mentionne', 'article'].edge_index = torch.from_numpy(edge_mentionné)
-#     data['source', 'est_source_de', 'article'].edge_index = torch.from_numpy(edge_est_source_de)
-
-#     return data
+        

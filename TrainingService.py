@@ -20,7 +20,7 @@ class TrainingService(ABC):
         pass
     
     
-class SimpleConnexionsHAN(TrainingService):
+class SimpleConnexionsHAN(TrainingService): 
     def __init__(self,label,device):
         
         self.label = label

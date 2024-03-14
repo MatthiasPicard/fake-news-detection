@@ -1,5 +1,6 @@
 gdelt_data
 gdelt_data_event
+*.zip
 __pycache__
 data
 labeled sources.pkl

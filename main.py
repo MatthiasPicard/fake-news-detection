@@ -18,8 +18,8 @@ def get_csv_files(directory, n):
 
 if __name__ == "__main__":
     
-    nb_event_csv = 16 # TODO: fail at 17 if label = source
-    nb_mentions_csv = 20
+    nb_event_csv = 1 # TODO: fail at 17 if label = source
+    nb_mentions_csv = 1
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
 
@@ -34,19 +34,21 @@ if __name__ == "__main__":
     "out_channels": 2,
     "n_heads": 4,
     "dropout": 0.5,
-    "nb_epoch": 5,
+    "nb_epoch": 10,
     
     "lr": 0.005,
     "weight_decay":0.001
     
     }
        
-    fake_news_detector = SimpleConnexionsHAN(label,device) 
-    fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
+    # fake_news_detector = SimpleConnexionsHAN(label,device) 
+    # fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     # TODO: create a function to save model
+    # TODO faire en sorte que les resultats soient reproductibles
     
-    # analyse = GraphViz(label,list_event,list_mention)
-    # analyse.get_recap()
+    analyse = GraphViz(label,list_event,list_mention)
+    analyse.get_recap()
+    analyse.display_graph()
 
 
 
