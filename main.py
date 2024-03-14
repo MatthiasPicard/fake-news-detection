@@ -2,6 +2,7 @@ from Preprocessing import SimplePreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
 from TrainingService import SimpleConnexionsHAN
+from Serialization import Serialization
 from GraphViz import GraphViz
 import torch
 import torch.nn.functional as F
@@ -27,23 +28,48 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     args_simple_connexions_HAN_1 = {
-    "list_mention": list_mention,
-    "list_event":list_event,
+        "list_mention": list_mention,
+        "list_event":list_event,
     
-    "hidden_channels": 64,
-    "out_channels": 2,
-    "n_heads": 4,
-    "dropout": 0.5,
-    "nb_epoch": 5,
+        "hidden_channels": 64,
+        "out_channels": 2,
+        "n_heads": 4,
+        "dropout": 0.5,
+        "nb_epoch": 5,
     
-    "lr": 0.005,
-    "weight_decay":0.001
+        "lr": 0.005,
+        "weight_decay":0.001
+    }
+
+    args_simple_connexions_HAN_1_save = {
+        "graph_name": "graph.pkl",
+        "list_mention": list_mention,
+        "list_event":list_event,
+    }
+
+    args_simple_connexions_HAN_1_import = {
+        "graph_name": "graph.pkl",
     
+        "hidden_channels": 64,
+        "out_channels": 2,
+        "n_heads": 4,
+        "dropout": 0.5,
+        "nb_epoch": 5,
+    
+        "lr": 0.005,
+        "weight_decay":0.001
     }
        
     fake_news_detector = SimpleConnexionsHAN(label,device) 
+    
+    # Create and save graph
+    # fake_news_detector.create_graph_and_save(**args_simple_connexions_HAN_1_save)
+
+    # Create graph and train on model
     fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
-    # TODO: create a function to save model
+
+    # Import graph and train on model
+    # fake_news_detector.import_graph_and_train_on_model(**args_simple_connexions_HAN_1_import)
     
     # analyse = GraphViz(label,list_event,list_mention)
     # analyse.get_recap()

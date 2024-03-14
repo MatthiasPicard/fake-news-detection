@@ -2,6 +2,7 @@ gdelt_data
 gdelt_data_event
 __pycache__
 data
+*.zip
 labeled sources.pkl
 mixt_labeled_articles.pkl
 mixt_labeled_sources.pkl

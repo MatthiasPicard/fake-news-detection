@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from Preprocessing import SimplePreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
+from Serialization import Serialization
 import torch
 
 class TrainingService(ABC):
@@ -17,6 +18,9 @@ class TrainingService(ABC):
     # directly train a model on an already created graph 
     # could be useful to implement if the preprocessing become time expensive if we scale a lot
     def import_graph_and_train_on_model(self):
+        pass
+
+    def create_graph_and_save(self):
         pass
     
     
@@ -43,4 +47,25 @@ class SimpleConnexionsHAN(TrainingService):
         training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
         training_process.train()
 
+    def import_graph_and_train_on_model(self,graph_name,hidden_channels,out_channels,n_heads,nb_epoch,lr,weight_decay=0,dropout=None):
+        serialization = Serialization(graph_name)
+        data = serialization.load()
         
+        model = HAN(self.label,metadata = data.metadata(),
+                    hidden_channels=hidden_channels,
+                    out_channels=out_channels,
+                    n_heads=n_heads,
+                    dropout = dropout)
+        
+        data, model = data.to(self.device), model.to(self.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
+        training_process.train()
+
+    def create_graph_and_save(self,graph_name,list_event,list_mention):
+        preprocessing = SimplePreprocessing(self.label)
+        labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
+        data = preprocessing.create_graph(labels,df_events,df_mentions)
+
+        serialization = Serialization(graph_name)
+        serialization.save(data)
