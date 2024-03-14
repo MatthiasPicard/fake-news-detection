@@ -1,7 +1,8 @@
-from Preprocessing import SimplePreprocessing
+from SimplePreprocessing import SimplePreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
-from TrainingService import SimpleConnexionsHAN
+from TrainingService import SimpleConnexionsHAN,CloseEventsConnexionsHAN
+
 from GraphViz import GraphViz
 import torch
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ def get_csv_files(directory, n):
     csv_files = []
     for filename in os.listdir(directory):
         if filename.endswith(".CSV"):
+            # print(os.path.join(directory, filename))
             csv_files.append(os.path.join(directory, filename))
             if len(csv_files) == n:
                 break
@@ -23,7 +25,7 @@ if __name__ == "__main__":
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
 
-    label = "source"
+    label = "article"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     args_simple_connexions_HAN_1 = {
@@ -42,13 +44,15 @@ if __name__ == "__main__":
     }
        
     # fake_news_detector = SimpleConnexionsHAN(label,device) 
-    # fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
+    fake_news_detector = CloseEventsConnexionsHAN(label,device) 
+    fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
+    
     # TODO: create a function to save model
     # TODO faire en sorte que les resultats soient reproductibles
     
-    analyse = GraphViz(label,list_event,list_mention)
-    analyse.get_recap()
-    analyse.display_graph()
+    # analyse = GraphViz(label,list_event,list_mention)
+    # analyse.get_recap()
+    # analyse.display_graph()
 
 
 

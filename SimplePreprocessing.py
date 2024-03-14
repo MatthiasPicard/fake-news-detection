@@ -12,26 +12,21 @@ from Preprocessing import Preprocessing
 
 class SimplePreprocessing(Preprocessing):
                      
-    
-    def create_graph(self,labels,df_events,df_mentions,col = "EventCode",mode = "train"): 
+    def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
-        df_mentions,labels_sorted,mapping_source,y = self._create_label_node(self,labels,df_mentions)
+        df_mentions,labels_sorted,mapping_source,y = self._create_label_node(labels,df_mentions)
+        df_mentions,mapping_article,df_article_sorted = self._create_non_label_node(df_mentions)
+        df_mentions,_, df_events_sorted = self._create_event_node(df_events,df_mentions)
         
-        if self.label == "article":
-            df_mentions,mapping_article,df_article_sorted = self._create_source_node(self,df_mentions)
-        elif self.label == 'source':
-            df_mentions,mapping_article,df_article_sorted = self._create_article_node(self,df_mentions)
-
-        df_mentions,mapping_event, df_events_sorted = self._create_event_edge(self,df_events,df_mentions)
+        edge_est_source_de,df_mentions = self._create_est_source_de_edge(df_mentions,mapping_article,mapping_source)
         
-        edge_est_source_de = self._create_est_source_de_edge(mapping_article,mapping_source)
-        
-        edge_mentionné,event_map = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)
+        edge_mentionné,_ = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)
                 
         # Create attributes for the mentionné edges
         # df_mentions_edges = df_mentions.drop(["GlobalEventID","MentionIdentifier","MentionSourceName"], axis = 1)
 
         # temporarily remove almost all columns for simplicity
+        # NOTE we will add the fonction _define_features here
         df_events_sorted_temp = df_events_sorted[["Day"]] 
         # df_mentions_edges_temp = df_mentions_edges[["EventTimeDate"]]
         labels_sorted_temp = labels_sorted.copy()
