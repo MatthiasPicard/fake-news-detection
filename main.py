@@ -20,12 +20,12 @@ def get_csv_files(directory, n):
 
 if __name__ == "__main__":
     
-    nb_event_csv = 1 # TODO: fail at 17 if label = source
+    nb_event_csv = 1 # TODO: fail at 17 if label = source ( bug fixé mais un peu à la zob)
     nb_mentions_csv = 1
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
 
-    label = "article"
+    label = "source"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     args_simple_connexions_HAN_1 = {
@@ -43,8 +43,8 @@ if __name__ == "__main__":
     
     }
        
-    # fake_news_detector = SimpleConnexionsHAN(label,device) 
-    fake_news_detector = CloseEventsConnexionsHAN(label,device) 
+    fake_news_detector = SimpleConnexionsHAN(label,device) 
+    # fake_news_detector = CloseEventsConnexionsHAN(label,device) 
     fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     
     # TODO: create a function to save model

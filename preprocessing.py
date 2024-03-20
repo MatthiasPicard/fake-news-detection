@@ -121,7 +121,9 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
         article_map = mapping_article.reset_index().set_index(self.non_label_column).to_dict()
         est_source_de[self.non_label_column] = est_source_de[self.non_label_column].map(article_map["index"]).astype(int)
         source_map = mapping_source.reset_index().set_index("links").to_dict()
-        est_source_de[self.label_column] = est_source_de[self.label_column].map(source_map["index"]).astype(int)
+        est_source_de[self.label_column] = est_source_de[self.label_column].map(source_map["index"]) # Bugfix attempt, may be suboptimal
+        est_source_de = est_source_de.dropna(subset=[self.label_column])
+        est_source_de[self.label_column] = est_source_de[self.label_column].astype(int)
         edge_est_source_de = est_source_de[["MentionSourceName", "MentionIdentifier"]].values.transpose()
     
         return edge_est_source_de,df_mentions
@@ -139,8 +141,10 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
             mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(source_map["index"]).astype(int)
 
         event_map = mapping_source.reset_index().set_index("links").to_dict()
-        print(mentionné["GlobalEventID"].map(event_map["index"]).isna().value_counts())
-        mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"]).astype(int)
+        mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"])
+        mentionné = mentionné.dropna(subset=["GlobalEventID"]) # Bugfix attempt, may be suboptimal
+        mentionné["GlobalEventID"] = mentionné["GlobalEventID"].astype(int)
+        # print(mentionné["GlobalEventID"].isna().value_counts())
         edge_mentionné = mentionné[["GlobalEventID", "MentionIdentifier"]].values.transpose()
     
         return edge_mentionné,event_map
