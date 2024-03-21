@@ -18,7 +18,7 @@ def get_csv_files(directory, n):
 
 if __name__ == "__main__":
     
-    nb_event_csv = 16  # TODO: fail at 17 if label = source
+    nb_event_csv = 16 # TODO: fail at 17 if label = source
     nb_mentions_csv = 20
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
