@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import RobustScaler
 import pandas as pd
 import pickle
 from abc import ABC, abstractmethod
@@ -28,10 +29,29 @@ COL_NAMES_EVENTS = ["GlobalEventID", "Day", "MonthYear", "Year", "FractionDate",
                     "ActionGeo_ADM2Code", "ActionGeo_Lat", "ActionGeo_Long", "ActionGeo_FeatureID", "DATEADDED",
                     "SOURCEURL"]  # event columns
 
+REMOVE_EVENT = ["Year","DATEADDED","SOURCEURL","IsRootEvent","EventBaseCode",
+          "EventRootCode","NumMentions","NumSources","NumArticles","AvgTone","Actor1Code",
+          "Actor2Code","Actor1Geo_ADM1Code","Actor1Geo_ADM2Code",
+            "Actor1Geo_FeatureID","Actor2Geo_ADM1Code","Actor2Geo_ADM2Code","Actor2Geo_FeatureID",
+            "ActionGeo_ADM1Code","ActionGeo_ADM2Code","ActionGeo_FeatureID","Actor1KnownGroupCode",
+            "Actor1EthnicCode","Actor1Religion1Code","Actor1Religion2Code"
+            ,"Actor1Type2Code","Actor1Type3Code","Actor2KnownGroupCode","Actor2EthnicCode",
+            "Actor2Religion1Code","Actor2Religion2Code","Actor2Type2Code","Actor2Type3Code",
+            "Actor1Geo_Type","Actor1Geo_Lat","Actor1Geo_Long","Actor2Geo_Type",
+            "Actor2Geo_Lat","Actor2Geo_Long","ActionGeo_Type","ActionGeo_Lat","ActionGeo_Long",
+            "Actor1Type1Code","Actor2Type1Code","Day","MonthYear"]
+
+# NOTE would be nice if we could include dates
+ENCODING_EVENT = ["QuadClass"]
+
+RESCALE_EVENT = ["FractionDate"] # NOTE "GoldsteinScale" has a special rescaling
+
+EMBEDDING_EVENT = ["Actor1Name","Actor1CountryCode","Actor2Name","Actor2CountryCode",
+"EventCode","Actor1Geo_Fullname","Actor1Geo_CountryCode","Actor2Geo_Fullname",
+"Actor2Geo_CountryCode","ActionGeo_Fullname","ActionGeo_CountryCode"]
 
 class Preprocessing(ABC): # NOTE variable names are misleading if self.label = article
 
-    
     def __init__(self,label):
         self.label = label
         if  self.label == "source":
@@ -54,7 +74,7 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
 
         events_dfs = []
         for file in list_event:
-            df = pd.read_csv(file, delimiter='\t', names=COL_NAMES_EVENTS)
+            df = pd.read_csv(file, delimiter='\t', names=COL_NAMES_EVENTS,dtype={'EventCode': str})
             events_dfs.append(df)
         df_events = pd.concat(events_dfs, ignore_index=True)
             
@@ -66,9 +86,19 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
             
         return labels,df_events,df_mentions
     
-    def _define_features(self): # TODO: function to retrieve features for events,sources
-        pass
-    
+    @abstractmethod
+    def _define_features_events(self,df):
+        df = df.drop(REMOVE_EVENT, axis=1)
+        df = df.dropna(subset=ENCODING_EVENT+RESCALE_EVENT)
+        df = pd.get_dummies(df, columns=ENCODING_EVENT)
+        scaler = RobustScaler()
+        scaled_features = scaler.fit_transform(df[RESCALE_EVENT])
+        df = df.drop(RESCALE_EVENT,axis=1)
+        df["GoldsteinScale"] = df["GoldsteinScale"]/10
+        df = pd.concat([df,pd.DataFrame(scaled_features)], axis=1)
+        return df
+        
+
     def _create_label_node(self,labels,df_mentions): 
         
         label_encoder_source = LabelEncoder()

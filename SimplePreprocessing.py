@@ -1,17 +1,21 @@
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch_geometric.data import HeteroData
 import torch
-import pickle
 import torch_geometric.transforms as T
-from abc import ABC, abstractmethod
-from itertools import product
-from Preprocessing import Preprocessing
+from Preprocessing import Preprocessing,EMBEDDING_EVENT
 
 class SimplePreprocessing(Preprocessing):
-                     
+     
+    # TODO, if no embedding, there are probably other stuff to add
+    def _define_features_events(self,df):
+        df = super(SimplePreprocessing,self)._define_features_events(df)
+        df = df.drop(EMBEDDING_EVENT,axis=1)
+        return df.astype(float)
+    
+    # TODO we could probably factorize this code to the main class without too much trouble                
     def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
         df_mentions,labels_sorted,mapping_source,y = self._create_label_node(labels,df_mentions)
@@ -20,15 +24,12 @@ class SimplePreprocessing(Preprocessing):
         
         edge_est_source_de,df_mentions = self._create_est_source_de_edge(df_mentions,mapping_article,mapping_source)
         
-        edge_mentionné,_ = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)
-                
-        # Create attributes for the mentionné edges
-        # df_mentions_edges = df_mentions.drop(["GlobalEventID","MentionIdentifier","MentionSourceName"], axis = 1)
+        edge_mentionné,_ = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)       
 
-        # temporarily remove almost all columns for simplicity
-        # NOTE we will add the fonction _define_features here
-        df_events_sorted_temp = df_events_sorted[["Day"]] 
-        # df_mentions_edges_temp = df_mentions_edges[["EventTimeDate"]]
+        # NOTE idealy, this function should be applied separately to the train and to the test
+        df_events_sorted_temp = self._define_features_events(df_events_sorted) 
+        # print(df_events_sorted_temp)
+        
         labels_sorted_temp = labels_sorted.copy()
         labels_sorted_temp["y"] = y
 
@@ -42,8 +43,6 @@ class SimplePreprocessing(Preprocessing):
         
         # data['source'].y = y
         data['event'].x = torch.from_numpy(df_events_sorted_temp.to_numpy()).to(dtype=torch.float32)
-
-        # data['event', 'mentionne', 'article'].edge_attr = torch.from_numpy(df_mentions_edges_temp.to_numpy())
 
         data['event', 'mentionne', 'article'].edge_index = torch.from_numpy(edge_mentionné).to(dtype=torch.long)
         data['source', 'est_source_de', 'article'].edge_index = torch.from_numpy(edge_est_source_de).to(dtype=torch.long)
