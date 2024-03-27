@@ -55,7 +55,7 @@ class SimpleTraining(Training):
 
     
 
-    def _train_one_epoch(self, dataloader: DataLoader) -> float:
+    def _train_one_epoch(self, dataloader) :
         self.model.train()
         epoch_loss = 0.0
         
