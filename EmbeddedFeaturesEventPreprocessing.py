@@ -5,13 +5,16 @@ from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
 from itertools import product
-from Preprocessing import Preprocessing,EMBEDDING_EVENT
+from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
+from sentence_transformers import SentenceTransformer
+
 
 class EmbeddedFeaturesEventPreprocessing(Preprocessing):
      
     # TODO, if no embedding, there are probably other stuff to add
     def _define_features_events(self,df):
         df = super(EmbeddedFeaturesEventPreprocessing,self)._define_features_events(df)
+        df = df.drop(IF_NO_EMBEDDING_KEEP, axis=1)
         df = self._define_embedding_event(df)
         return df
     
@@ -44,7 +47,14 @@ class EmbeddedFeaturesEventPreprocessing(Preprocessing):
         df = df.drop(EMBEDDING_EVENT,axis=1)
         
         # TODO Now embed features. But the process might be quite long and we need to not add too many columns
-        
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        # print("embedding started")
+        embeddings = model.encode(df['sentence'])
+        # print(embeddings.shape)
+        df = pd.concat([df,pd.DataFrame(embeddings)],axis = 1)
+        df = df.drop(['sentence'],axis=1)
+        # print(df)
+        # print(df.columns)
         return df.astype(float)
                      
     def create_graph(self,labels,df_events,df_mentions,mode = "train"): 

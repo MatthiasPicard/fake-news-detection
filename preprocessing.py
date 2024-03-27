@@ -29,17 +29,20 @@ COL_NAMES_EVENTS = ["GlobalEventID", "Day", "MonthYear", "Year", "FractionDate",
                     "ActionGeo_ADM2Code", "ActionGeo_Lat", "ActionGeo_Long", "ActionGeo_FeatureID", "DATEADDED",
                     "SOURCEURL"]  # event columns
 
-REMOVE_EVENT = ["Year","DATEADDED","SOURCEURL","IsRootEvent","EventBaseCode",
-          "EventRootCode","NumMentions","NumSources","NumArticles","AvgTone","Actor1Code",
+REMOVE_EVENT = ["Year","DATEADDED","SOURCEURL","EventBaseCode","IsRootEvent",
+          "NumMentions","NumSources","NumArticles","AvgTone","Actor1Code",
           "Actor2Code","Actor1Geo_ADM1Code","Actor1Geo_ADM2Code",
             "Actor1Geo_FeatureID","Actor2Geo_ADM1Code","Actor2Geo_ADM2Code","Actor2Geo_FeatureID",
             "ActionGeo_ADM1Code","ActionGeo_ADM2Code","ActionGeo_FeatureID","Actor1KnownGroupCode",
             "Actor1EthnicCode","Actor1Religion1Code","Actor1Religion2Code"
             ,"Actor1Type2Code","Actor1Type3Code","Actor2KnownGroupCode","Actor2EthnicCode",
             "Actor2Religion1Code","Actor2Religion2Code","Actor2Type2Code","Actor2Type3Code",
-            "Actor1Geo_Type","Actor1Geo_Lat","Actor1Geo_Long","Actor2Geo_Type",
-            "Actor2Geo_Lat","Actor2Geo_Long","ActionGeo_Type","ActionGeo_Lat","ActionGeo_Long",
+            "Actor1Geo_Lat","Actor1Geo_Long",
+            "Actor2Geo_Lat","Actor2Geo_Long","ActionGeo_Lat","ActionGeo_Long",
             "Actor1Type1Code","Actor2Type1Code","Day","MonthYear"]
+
+# NOTE we could also probably keep  them if embedding except EventRootCode
+IF_NO_EMBEDDING_KEEP = ["Actor1Geo_Type","Actor2Geo_Type","ActionGeo_Type","EventRootCode"]
 
 # NOTE would be nice if we could include dates
 ENCODING_EVENT = ["QuadClass"]

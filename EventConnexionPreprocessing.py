@@ -6,7 +6,7 @@ from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
 from itertools import product
-from Preprocessing import Preprocessing,EMBEDDING_EVENT
+from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 
 class EventConnexionPreprocessing(Preprocessing):
                      
@@ -33,6 +33,8 @@ class EventConnexionPreprocessing(Preprocessing):
     def _define_features_events(self,df):
         df = super(EventConnexionPreprocessing,self)._define_features_events(df)
         df = df.drop(EMBEDDING_EVENT,axis=1)
+        df = df.dropna(subset=IF_NO_EMBEDDING_KEEP)
+        df = pd.get_dummies(df, columns=IF_NO_EMBEDDING_KEEP)
         return df.astype(float)
     
     def create_graph(self,labels,df_events,df_mentions,col = "EventCode",mode = "train"): 

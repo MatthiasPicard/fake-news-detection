@@ -5,7 +5,7 @@ import pandas as pd
 from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
-from Preprocessing import Preprocessing,EMBEDDING_EVENT
+from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 
 class SimplePreprocessing(Preprocessing):
      
@@ -13,6 +13,8 @@ class SimplePreprocessing(Preprocessing):
     def _define_features_events(self,df):
         df = super(SimplePreprocessing,self)._define_features_events(df)
         df = df.drop(EMBEDDING_EVENT,axis=1)
+        df = df.dropna(subset=IF_NO_EMBEDDING_KEEP)
+        df = pd.get_dummies(df, columns=IF_NO_EMBEDDING_KEEP)
         return df.astype(float)
     
     # TODO we could probably factorize this code to the main class without too much trouble                
@@ -26,10 +28,10 @@ class SimplePreprocessing(Preprocessing):
         
         edge_mentionné,_ = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)       
 
-        # NOTE idealy, this function should be applied separately to the train and to the test
+        # NOTE ideally, this function should be applied separately to the train and to the test
         df_events_sorted_temp = self._define_features_events(df_events_sorted) 
-        # print(df_events_sorted_temp)
-        
+        print(df_events_sorted_temp) 
+        print(df_events_sorted_temp.columns)
         labels_sorted_temp = labels_sorted.copy()
         labels_sorted_temp["y"] = y
 

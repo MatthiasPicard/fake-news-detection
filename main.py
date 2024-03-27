@@ -1,7 +1,7 @@
 from SimplePreprocessing import SimplePreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
-from TrainingService import SimpleConnexionsHAN,CloseEventsConnexionsHAN
+from TrainingService import SimpleConnexionsHAN,CloseEventsConnexionsHAN,EmbeddedFeaturesEventHAN
 
 from GraphViz import GraphViz
 import torch
@@ -45,6 +45,7 @@ if __name__ == "__main__":
        
     fake_news_detector = SimpleConnexionsHAN(label,device) 
     # fake_news_detector = CloseEventsConnexionsHAN(label,device) 
+    # fake_news_detector = EmbeddedFeaturesEventHAN(label,device)
     fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     
     # TODO: create a function to save model
