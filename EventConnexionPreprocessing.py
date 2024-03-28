@@ -15,9 +15,10 @@ class EventConnexionPreprocessing(Preprocessing):
         same_actions = df_events[["GlobalEventID",col]]
         edge_same_event = torch.tensor([], dtype=torch.long)
         while len(same_actions) > 0:
-            # print(len(same_actions))
+            print(len(same_actions))
             same_action_nodes = (same_actions[col] == same_actions.iloc[0][col])#.nonzero().squeeze()
             cartesian_product = list(product(same_actions[same_action_nodes]['GlobalEventID'], repeat=2))
+            print("on est la")
             edges = [[x, y] for x, y in cartesian_product if x != y and cartesian_product.index((x, y)) < cartesian_product.index((y, x))]
             edges_t = torch.tensor(list(zip(*edges)))
             edge_same_event = torch.cat((edge_same_event, edges_t), dim=1)

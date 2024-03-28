@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import FastRGCNConv,HANConv
 from torch_geometric.data import Data
-import torch.nn as nn
 
 class HAN(torch.nn.Module):
     def __init__(self,label, in_channels: int=-1, hidden_channels: int=64,

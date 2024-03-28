@@ -30,8 +30,8 @@ class SimplePreprocessing(Preprocessing):
 
         # NOTE ideally, this function should be applied separately to the train and to the test
         df_events_sorted_temp = self._define_features_events(df_events_sorted) 
-        print(df_events_sorted_temp) 
-        print(df_events_sorted_temp.columns)
+        # print(df_events_sorted_temp) 
+        # print(df_events_sorted_temp.columns)
         labels_sorted_temp = labels_sorted.copy()
         labels_sorted_temp["y"] = y
 
@@ -60,7 +60,7 @@ class SimplePreprocessing(Preprocessing):
         num_labels = len(data_undirected[self.label].y)
         known_indices = np.where(~data_undirected[self.label].y.isna())[0]
         known_labels = data_undirected[self.label].y[known_indices]
-        train_labels, test_labels, train_idx, test_idx = train_test_split(known_labels, known_indices, test_size=0.2, random_state=42)
+        train_labels, test_labels, train_idx, test_idx = train_test_split(known_labels, known_indices, test_size=0.2, random_state=42,stratify=known_labels)
         train_mask = torch.zeros(num_labels, dtype=torch.bool)
         test_mask = torch.zeros(num_labels, dtype=torch.bool)
         train_mask[train_idx] = True

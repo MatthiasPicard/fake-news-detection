@@ -2,7 +2,6 @@ from SimplePreprocessing import SimplePreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
 from TrainingService import SimpleConnexionsHAN,CloseEventsConnexionsHAN,EmbeddedFeaturesEventHAN
-
 from GraphViz import GraphViz
 import torch
 import torch.nn.functional as F
@@ -20,8 +19,8 @@ def get_csv_files(directory, n):
 
 if __name__ == "__main__":
     
-    nb_event_csv = 1 # TODO: fail at 17 if label = source ( bug fixé mais un peu à la zob)
-    nb_mentions_csv = 1
+    nb_event_csv = 100 # TODO: fail at 17 if label = source ( bug fixé mais un peu à la zob)
+    nb_mentions_csv = 100
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
 
@@ -35,8 +34,8 @@ if __name__ == "__main__":
     "hidden_channels": 64,
     "out_channels": 2,
     "n_heads": 4,
-    "dropout": 0.5,
-    "nb_epoch": 10,
+    "dropout": 0.2,
+    "nb_epoch": 30,
     
     "lr": 0.005,
     "weight_decay":0.001
@@ -50,6 +49,8 @@ if __name__ == "__main__":
     
     # TODO: create a function to save model
     # TODO faire en sorte que les resultats soient reproductibles
+    # TODO créer plus d'analyse pour le training
+    # TODO tester différent hyperparamètres
     
     # analyse = GraphViz(label,list_event,list_mention)
     # analyse.get_recap()
