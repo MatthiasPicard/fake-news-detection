@@ -4,7 +4,12 @@ from EventConnexionPreprocessing import EventConnexionPreprocessing
 from EmbeddedFeaturesEventPreprocessing import EmbeddedFeaturesEventPreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
+from torch_geometric.data import Data, DataLoader
 import torch
+import pickle
+import os
+
+SAVED_GRAPHS_DIR = "saved_graphs"
 
 class TrainingService(ABC):
     
@@ -20,6 +25,9 @@ class TrainingService(ABC):
     # directly train a model on an already created graph 
     # could be useful to implement if the preprocessing become time expensive if we scale a lot
     def import_graph_and_train_on_model(self):
+        pass
+    
+    def create_graph_and_save_model(self):
         pass
     
     
@@ -65,6 +73,31 @@ class CloseEventsConnexionsHAN(TrainingService):
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
         training_process.train()
+    
+    def create_graph_and_save(self,list_event,list_mention,name):
+        preprocessing = EventConnexionPreprocessing(self.label)
+        labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
+        data = preprocessing.create_graph(labels,df_events,df_mentions)
+        if not os.path.exists(SAVED_GRAPHS_DIR):
+            os.makedirs(SAVED_GRAPHS_DIR)
+            
+        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
+        torch.save(data, save_path)
+        
+    def import_graph_and_train_on_model(self,name,hidden_channels,out_channels,n_heads,nb_epoch,lr,weight_decay=0,dropout=None):
+        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
+        data = torch.load(save_path)
+        model = HAN(self.label,metadata = data.metadata(),
+                    hidden_channels=hidden_channels,
+                    out_channels=out_channels,
+                    n_heads=n_heads,
+                    dropout = dropout)
+        
+        data, model = data.to(self.device), model.to(self.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
+        training_process.train()
+        
         
 class EmbeddedFeaturesEventHAN(TrainingService): 
  
