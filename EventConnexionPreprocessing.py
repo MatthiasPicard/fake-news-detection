@@ -9,17 +9,24 @@ from itertools import product
 from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 
 class EventConnexionPreprocessing(Preprocessing):
-                     
+         
+    def __init__(self,label,is_mixte,col):
+        super().__init__(label,is_mixte)
+        self.col = col
+        
+                
     def _create_same_column_edge(self,col,df_events,event_map):
         
         same_actions = df_events[["GlobalEventID",col]]
+        same_actions = same_actions.dropna(subset=[col])
         edge_same_event = torch.tensor([], dtype=torch.long)
         while len(same_actions) > 0:
             print(len(same_actions))
             same_action_nodes = (same_actions[col] == same_actions.iloc[0][col])#.nonzero().squeeze()
             cartesian_product = list(product(same_actions[same_action_nodes]['GlobalEventID'], repeat=2))
-            print("on est la")
-            edges = [[x, y] for x, y in cartesian_product if x != y and cartesian_product.index((x, y)) < cartesian_product.index((y, x))]
+            # edges = [[x, y] for x, y in cartesian_product if x < y]
+            edges = cartesian_product
+            print('on est la')
             edges_t = torch.tensor(list(zip(*edges)))
             edge_same_event = torch.cat((edge_same_event, edges_t), dim=1)
             same_actions = same_actions.drop(same_actions[same_action_nodes].index)
@@ -38,7 +45,7 @@ class EventConnexionPreprocessing(Preprocessing):
         df = pd.get_dummies(df, columns=IF_NO_EMBEDDING_KEEP)
         return df.astype(float)
     
-    def create_graph(self,labels,df_events,df_mentions,col = "EventCode",mode = "train"): 
+    def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
         df_mentions,labels_sorted,mapping_source,y = self._create_label_node(labels,df_mentions)
         df_mentions,mapping_article,df_article_sorted = self._create_non_label_node(df_mentions)
@@ -48,7 +55,7 @@ class EventConnexionPreprocessing(Preprocessing):
     
         edge_mentionné,event_map = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)
         
-        edge_same_event = self._create_same_column_edge(col,df_events,event_map)
+        edge_same_event = self._create_same_column_edge(self.col,df_events,event_map)
         
         # NOTE idealy, this function should be applied separately to the train and to the test
         df_events_sorted_temp = self._define_features_events(df_events_sorted) 

@@ -9,7 +9,6 @@ from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 
 class SimplePreprocessing(Preprocessing):
      
-    # TODO, if no embedding, there are probably other stuff to add
     def _define_features_events(self,df):
         df = super(SimplePreprocessing,self)._define_features_events(df)
         df = df.drop(EMBEDDING_EVENT,axis=1)

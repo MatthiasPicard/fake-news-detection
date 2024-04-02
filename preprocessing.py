@@ -55,8 +55,9 @@ EMBEDDING_EVENT = ["Actor1Name","Actor1CountryCode","Actor2Name","Actor2CountryC
 
 class Preprocessing(ABC): # NOTE variable names are misleading if self.label = article
 
-    def __init__(self,label):
+    def __init__(self,label,is_mixte):
         self.label = label
+        self.is_mixte = is_mixte
         if  self.label == "source":
             self.label_column = "MentionSourceName"
             self.non_label_column = "MentionIdentifier"
@@ -67,11 +68,21 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
     def data_load(self,list_event,list_mention):
     
         if self.label == "source":
-            with open("mixt_labeled_sources.pkl", 'rb') as file:  # label of sources (nan if not present in MBFS)
-                labels = pickle.load(file)
+            
+            if self.is_mixte:
+                with open("large_source_labels.pkl", 'rb') as file:  # label of sources (nan if not present in MBFS)
+                    labels = pickle.load(file)
+            else:
+                with open("mixt_labeled_sources.pkl", 'rb') as file:  # label of sources (nan if not present in MBFS)
+                    labels = pickle.load(file)
+                    
         elif self.label == "article":
-            with open("mixt_labeled_articles.pkl", 'rb') as file:  # label of articles (nan if not present in MBFS)
-                labels = pickle.load(file)
+            if self.is_mixte:
+                with open("large_articles_labels.pkl", 'rb') as file:  # label of articles (nan if not present in MBFS)
+                    labels = pickle.load(file)
+            else:
+                with open("mixt_labeled_articles.pkl", 'rb') as file:  # label of articles (nan if not present in MBFS)
+                    labels = pickle.load(file)      
         else:
             raise ValueError("label should be either 'source' or 'article'")
 

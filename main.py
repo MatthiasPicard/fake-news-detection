@@ -25,12 +25,13 @@ if __name__ == "__main__":
     random.seed(42)
     torch.manual_seed(42)
     
-    nb_event_csv = 1 # TODO: fail at 17 if label = source ( bug fixé mais un peu à la zob)
-    nb_mentions_csv = 1
+    nb_event_csv = 100 # TODO: fail at 17 if label = source ( bug fixé mais un peu à la zob)
+    nb_mentions_csv = 100
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
 
     label = "source"
+    is_mixte = True
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     args_simple_connexions_HAN_1 = {
@@ -55,19 +56,22 @@ if __name__ == "__main__":
     args_load_graph = {key:args_simple_connexions_HAN_1[key] for key in list_arg_load_graph}
 
        
-    fake_news_detector = SimpleConnexionsHAN(label,device) 
-    # fake_news_detector = CloseEventsConnexionsHAN(label,device) 
-    # fake_news_detector = EmbeddedFeaturesEventHAN(label,device)
+    fake_news_detector = SimpleConnexionsHAN(label,is_mixte,device) 
+    # fake_news_detector = CloseEventsConnexionsHAN(label,is_mixte,device,col="Actor1Name") 
+    # fake_news_detector = EmbeddedFeaturesEventHAN(label,is_mixte,device)
     fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     # fake_news_detector.create_graph_and_save(**args_save_graph,name = name_save)
     # fake_news_detector.import_graph_and_train_on_model(**args_load_graph,name = name_load)
 
 
-    # TODO créer plus d'analyse pour le training
+    # TODO créer plus d'analyse pour le training (plot loss and val loss)
     # TODO tester différents hyperparamètres
     # TODO tester différents models( est ce que celui la n'est pas trop gros?)
+    # TODO avec des features ça serait sans doute mieux
     # TODO tester ce qu'il se passerait si on mettait les mixed comme des fakes news pour rééquilibrer
-    # TODO find a way to reduce the time needed to create new connections
+    
+    # TODO find a way to reduce the time needed to create new connections (this is better now but still not perfect)
+    
     # analyse = GraphViz(label,list_event,list_mention)
     # analyse.get_recap()
     # analyse.display_graph()
