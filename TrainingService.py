@@ -5,7 +5,6 @@ from heterogemodel import HAN
 from Training import SimpleTraining
 import torch
 from torch_geometric.loader import NeighborLoader, ImbalancedSampler
-import matplotlib.pyplot as plt
 
 class TrainingService(ABC):
     
@@ -31,59 +30,24 @@ class SimpleConnexionsHAN(TrainingService):
         preprocessing = SimplePreprocessing(self.label)
         labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
         data = preprocessing.create_graph(labels,df_events,df_mentions)
-        
-        
-        
-        
-        
-        results = []
-        for l in lr:
-            for e in nb_epoch:
-                model = HAN(self.label,metadata = data.metadata(),
-                    hidden_channels=hidden_channels,
-                    out_channels=out_channels,
-                    n_heads=n_heads,
-                    dropout = dropout)
-                data, model = data.to(self.device), model.to(self.device)
-                
-                optimizer = torch.optim.Adam(model.parameters(), lr=l, weight_decay=weight_decay)
-                optimizer.zero_grad()
-                training_process = SimpleTraining(data,model,optimizer,e,self.label)
-                result = training_process.train()
-                #Results : ((learning rate,epoch,(Recall,Precision,F1 Score)))
-                results.append((l, e, result))
-        
-        for lr, epoch, result in results:
-            print(f"Learning Rate: {lr}, Epochs: {epoch}, Result(Precision,Recall,F1 score): {result}")
-        
-        
-        
-        
-        for e in [5,10,15,50,100,500,1000]:
-            model = HAN(self.label,metadata = data.metadata(),
-                    hidden_channels=hidden_channels,
-                    out_channels=out_channels,
-                    n_heads=n_heads,
-                    dropout = dropout)
-            data, model = data.to(self.device), model.to(self.device)
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=weight_decay)
-            #optimizer.zero_grad()
-            training_process = SimpleTraining(data,model,optimizer,e,self.label)
-            result = training_process.train()
-            #Results : ((learning rate,epoch,(Recall,Precision,F1 Score)))
-            results.append((l, e, result))
-            # Plotting the results
-            x = []
-            y = []
-            for lr, epoch, result in results:
-                x.append(epoch)
-                y.append(result[2])
 
-        plt.plot(x, y)
-        plt.xlabel('Epochs')
-        plt.ylabel('Result (F1 Score) avec lr = 0.1')
-        plt.title('Training Results')
-        plt.show()
+        
+
+        sampler = ImbalancedSampler(data, input_nodes=data["source"].train_mask)
+        loader = NeighborLoader(data, input_nodes=data["source"].train_mask,
+                                batch_size=64, num_neighbors=[-1, -1],
+                                sampler=sampler)
+        
+        model = HAN(self.label,metadata = data.metadata(),
+                    hidden_channels=hidden_channels,
+                    out_channels=out_channels,
+                    n_heads=n_heads,
+                    dropout = dropout)
+        
+        data, model = data.to(self.device), model.to(self.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
+        training_process.train(loader)
         
 class CloseEventsConnexionsHAN(TrainingService): 
      

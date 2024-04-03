@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from abc import ABC, abstractmethod
 from sklearn.metrics import precision_score, recall_score, f1_score
-
+from torch.utils.data import DataLoader
 
 class Training(ABC):
     
@@ -42,35 +42,40 @@ class SimpleTraining(Training):
         self.nb_epoch = nb_epoch
         self.label = label
         
-    def train(self):
-        
+    def train(self,loader):
+
         with torch.no_grad():
             
             out = self.model(self.data.x_dict, self.data.edge_index_dict)
         
         for epoch in range(0, self.nb_epoch):
-            loss = self._train_one_epoch()
+            loss = self._train_one_epoch(loader)
             train_acc, test_acc = self.test()
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, Test: {test_acc:.4f}')
             
         self._final_audit()    
 
-    def _train_one_epoch(self) :
+    
+
+    def _train_one_epoch(self, dataloader) :
         self.model.train()
+        epoch_loss = 0.0
         
+        for batch in dataloader:
+            self.optimizer.zero_grad()
+            
+            x_dict, edge_index_dict, labels = batch
+            
+            out = self.model(x_dict, edge_index_dict)
+            loss = F.cross_entropy(out, labels.long())
+            
+            loss.backward()
+            self.optimizer.step()
+            
+            epoch_loss += loss.item() * len(batch) 
         
-        self.optimizer.zero_grad()
-        out = self.model(self.data.x_dict, self.data.edge_index_dict)
-        mask = self.data[self.label].train_mask
-        b_counter = Counter(self.data[self.label].y[mask].long().detach().cpu().tolist())
-        b_weights = torch.tensor([sum(self.data[self.label].y[mask].long().detach().cpu().tolist()) / b_counter[label] if b_counter[label] > 0 else 0 for label in range(2)])
-        loss_function = torch.nn.CrossEntropyLoss(weight=b_weights)
-        loss = loss_function(out[mask], self.data[self.label].y[mask].long())
-        
-        loss.backward()
-        self.optimizer.step()
-        
-        return float(loss)
+        return epoch_loss / len(dataloader.dataset)
+
 
 
     @torch.no_grad()
