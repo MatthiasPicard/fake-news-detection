@@ -7,6 +7,8 @@ import torch
 import torch_geometric.transforms as T
 from itertools import product
 from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
+from torch_geometric.utils import remove_self_loops
+
 
 class EventConnexionPreprocessing(Preprocessing):
          
@@ -30,12 +32,21 @@ class EventConnexionPreprocessing(Preprocessing):
             edges_t = torch.tensor(list(zip(*edges)))
             edge_same_event = torch.cat((edge_same_event, edges_t), dim=1)
             same_actions = same_actions.drop(same_actions[same_action_nodes].index)
-        edge_same_event_0 = list(pd.DataFrame(edge_same_event).loc[0].map(event_map["index"]).astype(int))
-        edge_same_event_1 = list(pd.DataFrame(edge_same_event).loc[1].map(event_map["index"]).astype(int))
+        df = pd.DataFrame(edge_same_event).transpose()
+        df[0] = df[0].map(event_map["index"])
+        df[1] = df[1].map(event_map["index"])
+        df = df.dropna(axis=0, how='any')
+        # print(df)
+        # print(df.isna().sum())
+        # print(pd.DataFrame(edge_same_event)[0].map(event_map["index"]))
+        # print(pd.DataFrame(edge_same_event)[1].map(event_map["index"]))
+        edge_same_event_0 = list(df[0].astype(int))
+        edge_same_event_1 = list(df[1].astype(int))
         # print(edge_same_event_1)
         edge_same_event = torch.tensor([edge_same_event_0,edge_same_event_1])
+        edge_same_event, _ = remove_self_loops(edge_same_event)
+        print(len(edge_same_event[0]))
         # print(edge_same_event)
-
         return edge_same_event        
     
     def _define_features_events(self,df):

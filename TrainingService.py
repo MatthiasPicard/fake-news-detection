@@ -3,11 +3,11 @@ from torchinfo import summary
 from SimplePreprocessing import SimplePreprocessing
 from EventConnexionPreprocessing import EventConnexionPreprocessing
 from EmbeddedFeaturesEventPreprocessing import EmbeddedFeaturesEventPreprocessing
+from EmbeddedFeaturesEventAndConnexionPreprocessing import EmbeddedFeaturesEventAndConnexionPreprocessing
 from Heterogemodel import HAN
 from Training import SimpleTraining
 from torch_geometric.data import Data, DataLoader
 import torch
-import pickle
 import os
 
 SAVED_GRAPHS_DIR = "saved_graphs"
@@ -26,8 +26,19 @@ class TrainingService(ABC):
     
     # directly train a model on an already created graph 
     # could be useful to implement if the preprocessing become time expensive if we scale a lot
-    def import_graph_and_train_on_model(self):
-        pass
+    def import_graph_and_train_on_model(self,name,hidden_channels,out_channels,n_heads,nb_epoch,lr,weight_decay=0,dropout=None):
+        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
+        data = torch.load(save_path)
+        model = HAN(self.label,metadata = data.metadata(),
+                    hidden_channels=hidden_channels,
+                    out_channels=out_channels,
+                    n_heads=n_heads,
+                    dropout = dropout)
+        
+        data, model = data.to(self.device), model.to(self.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
+        training_process.train()
     
     def create_graph_and_save_model(self):
         pass
@@ -52,6 +63,16 @@ class SimpleConnexionsHAN(TrainingService):
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
         training_process.train()
+        
+    def create_graph_and_save(self,list_event,list_mention,name):
+        preprocessing = EventConnexionPreprocessing(self.label,self.is_mixte,self.col)
+        labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
+        data = preprocessing.create_graph(labels,df_events,df_mentions)
+        if not os.path.exists(SAVED_GRAPHS_DIR):
+            os.makedirs(SAVED_GRAPHS_DIR)
+             
+        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
+        torch.save(data, save_path)  
         
 class CloseEventsConnexionsHAN(TrainingService): 
      
@@ -82,30 +103,16 @@ class CloseEventsConnexionsHAN(TrainingService):
         data = preprocessing.create_graph(labels,df_events,df_mentions)
         if not os.path.exists(SAVED_GRAPHS_DIR):
             os.makedirs(SAVED_GRAPHS_DIR)
-            
+             
         save_path = os.path.join(SAVED_GRAPHS_DIR, name)
-        torch.save(data, save_path)
-        
-    def import_graph_and_train_on_model(self,name,hidden_channels,out_channels,n_heads,nb_epoch,lr,weight_decay=0,dropout=None):
-        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
-        data = torch.load(save_path)
-        model = HAN(self.label,metadata = data.metadata(),
-                    hidden_channels=hidden_channels,
-                    out_channels=out_channels,
-                    n_heads=n_heads,
-                    dropout = dropout)
-        
-        data, model = data.to(self.device), model.to(self.device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-        training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
-        training_process.train()
+        torch.save(data, save_path)           
         
         
-class EmbeddedFeaturesEventHAN(TrainingService): 
+class EmbeddedFeaturesEventAndConnexionstHAN(CloseEventsConnexionsHAN): 
  
     def create_graph_and_train_on_model(self,list_event,list_mention,hidden_channels,out_channels,n_heads,nb_epoch,lr,weight_decay=0,dropout=None):
         
-        preprocessing = EmbeddedFeaturesEventPreprocessing(self.label)
+        preprocessing = EmbeddedFeaturesEventAndConnexionPreprocessing(self.label,self.is_mixte,self.col)
         labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
         data = preprocessing.create_graph(labels,df_events,df_mentions)
         
@@ -119,5 +126,44 @@ class EmbeddedFeaturesEventHAN(TrainingService):
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
         training_process.train()
+    
+    def create_graph_and_save(self,list_event,list_mention,name):
+        preprocessing = EventConnexionPreprocessing(self.label,self.is_mixte,self.col)
+        labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
+        data = preprocessing.create_graph(labels,df_events,df_mentions)
+        if not os.path.exists(SAVED_GRAPHS_DIR):
+            os.makedirs(SAVED_GRAPHS_DIR)
+             
+        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
+        torch.save(data, save_path)  
+        
+class EmbeddedFeaturesEventHAN(TrainingService): 
+ 
+    def create_graph_and_train_on_model(self,list_event,list_mention,hidden_channels,out_channels,n_heads,nb_epoch,lr,weight_decay=0,dropout=None):
+        
+        preprocessing = EmbeddedFeaturesEventPreprocessing(self.label,self.is_mixte)
+        labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
+        data = preprocessing.create_graph(labels,df_events,df_mentions)
+        
+        model = HAN(self.label,metadata = data.metadata(),
+                    hidden_channels=hidden_channels,
+                    out_channels=out_channels,
+                    n_heads=n_heads,
+                    dropout = dropout)
+        
+        data, model = data.to(self.device), model.to(self.device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
+        training_process.train()
+    
+    def create_graph_and_save(self,list_event,list_mention,name):
+        preprocessing = EventConnexionPreprocessing(self.label,self.is_mixte,self.col)
+        labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
+        data = preprocessing.create_graph(labels,df_events,df_mentions)
+        if not os.path.exists(SAVED_GRAPHS_DIR):
+            os.makedirs(SAVED_GRAPHS_DIR)
+             
+        save_path = os.path.join(SAVED_GRAPHS_DIR, name)
+        torch.save(data, save_path)  
 
         

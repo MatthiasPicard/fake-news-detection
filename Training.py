@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from sklearn.metrics import precision_score, recall_score, f1_score
 from collections import Counter
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 class Training(ABC):
     
@@ -49,12 +50,17 @@ class SimpleTraining(Training):
         with torch.no_grad():
             out = self.model(self.data.x_dict, self.data.edge_index_dict)
         
+        liste_loss = []
         for epoch in range(0, self.nb_epoch):
             loss = self._train_one_epoch()
+            liste_loss.append(loss)
             train_acc, test_acc = self.test()
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, Test: {test_acc:.4f}')
             
-        self._final_audit()    
+        self._final_audit()
+         
+        plt.plot(liste_loss)   
+        plt.show()
 
     def _train_one_epoch(self) -> float:
         self.model.train()
