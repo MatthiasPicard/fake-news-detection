@@ -1,5 +1,5 @@
 import networkx as nx
-from preprocessing import SimplePreprocessing
+from SimplePreprocessing import SimplePreprocessing
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -12,7 +12,7 @@ class GraphViz():
         self.list_mention = list_mention
         
         self.data_undirected,self.df_article_sorted,self.labels_sorted,self.df_events_sorted_temp,self.edge_mentionné,self.edge_est_source_de,self.y = self._retrieve_data_for_viz()
-    
+    #self.edge_same_event,
     def _retrieve_data_for_viz(self):
         preprocessing = SimplePreprocessing(self.label)
         labels,df_events,df_mentions = preprocessing.data_load(self.list_event,self.list_mention)
@@ -68,13 +68,17 @@ class GraphViz():
                 return str(element) + '_s'
             elif row_index == 1:
                 return str(element) + '_a'
+            
+        def append_suffix_edge_same_event(element):
+                return str(element) + '_e'
         
         edge_mentionné_appended = np.vectorize(append_suffix_mentionne)(self.edge_mentionné, np.indices(self.edge_mentionné.shape)[0])
         edge_est_source_de_appended = np.vectorize(append_suffix_edge_est_source_de)(self.edge_est_source_de, np.indices(self.edge_est_source_de.shape)[0])
-
+        # edge_same_event_appended = np.vectorize(append_suffix_edge_same_event)(self.edge_same_event)
 
         G.add_edges_from(edge_mentionné_appended.transpose())
         G.add_edges_from(edge_est_source_de_appended.transpose())
+        # G.add_edges_from(edge_same_event_appended.transpose())
 
         isolated_nodes = [node for node, degree in G.degree() if degree == 0]
         G.remove_nodes_from(isolated_nodes)
