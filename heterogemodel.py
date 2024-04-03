@@ -3,13 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import FastRGCNConv,HANConv
 from torch_geometric.data import Data
-import torch.nn as nn
 
 class HAN(torch.nn.Module):
     def __init__(self,label, in_channels: int=-1, hidden_channels: int=64,
               out_channels: int=2, n_heads=4, metadata=None,dropout = 0.5):
         super(HAN, self).__init__()
-        torch.manual_seed(12345)
         self.label = label
         self.han_conv_0 = HANConv(in_channels,
                                hidden_channels,

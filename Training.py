@@ -3,7 +3,8 @@ import torch
 import torch.nn.functional as F
 from abc import ABC, abstractmethod
 from sklearn.metrics import precision_score, recall_score, f1_score
-from torch.utils.data import DataLoader
+from collections import Counter
+import torch.nn as nn
 
 class Training(ABC):
     
@@ -22,11 +23,13 @@ class Training(ABC):
     @torch.no_grad()
     def _final_audit(self):
         
-        mask = self.data[self.label].train_mask
+        mask = self.data[self.label].test_mask
         pred = self.model(self.data.x_dict, self.data.edge_index_dict).argmax(dim=-1)
-        precision = precision_score(pred[mask], self.data[self.label].y[mask].long())
-        recall = recall_score(pred[mask], self.data[self.label].y[mask].long())
-        f1 = f1_score(pred[mask], self.data[self.label].y[mask].long())
+        print(pred[mask])
+        print(self.data[self.label].y[mask].long())
+        precision = precision_score(self.data[self.label].y[mask].long(),pred[mask])
+        recall = recall_score(self.data[self.label].y[mask].long(),pred[mask])
+        f1 = f1_score(self.data[self.label].y[mask].long(),pred[mask])
 
         print("Precision:", precision)
         print("Recall:", recall)
@@ -59,24 +62,22 @@ class SimpleTraining(Training):
 
     def _train_one_epoch(self, dataloader) :
         self.model.train()
-        epoch_loss = 0.0
-        
-        for batch in dataloader:
-            self.optimizer.zero_grad()
-            
-            x_dict, edge_index_dict, labels = batch
-            
-            out = self.model(x_dict, edge_index_dict)
-            loss = F.cross_entropy(out, labels.long())
-            
-            loss.backward()
-            self.optimizer.step()
-            
-            epoch_loss += loss.item() * len(batch) 
-        
-        return epoch_loss / len(dataloader.dataset)
-
-
+        self.optimizer.zero_grad()
+        out = self.model(self.data.x_dict, self.data.edge_index_dict)
+        mask = self.data[self.label].train_mask
+        b_counter = Counter(self.data[self.label].y[mask].long().detach().cpu().tolist())
+        print(b_counter)
+        b_weights = torch.tensor([sum(self.data[self.label].y[mask].long().detach().cpu().tolist()) / b_counter[label] if b_counter[label] > 0 else 0 for label in range(2)])
+        print(b_weights)
+        # b_weights = b_weights.to(self.device)
+        # print(mask)
+        # print(out)
+        # print(self.data['source'].y[mask])
+        loss_function = nn.CrossEntropyLoss(weight=b_weights)
+        loss = loss_function(out[mask], self.data[self.label].y[mask].long())
+        loss.backward()
+        self.optimizer.step()
+        return float(loss)
 
     @torch.no_grad()
     def test(self):

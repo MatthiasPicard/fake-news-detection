@@ -5,7 +5,7 @@ import pandas as pd
 from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
-from preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
+from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 
 class SimplePreprocessing(Preprocessing):
      

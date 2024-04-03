@@ -6,19 +6,27 @@ from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
 from itertools import product
-from preprocessing import Preprocessing
+from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 
 class EventConnexionPreprocessing(Preprocessing):
-                     
+         
+    def __init__(self,label,is_mixte,col):
+        super().__init__(label,is_mixte)
+        self.col = col
+        
+                
     def _create_same_column_edge(self,col,df_events,event_map):
         
         same_actions = df_events[["GlobalEventID",col]]
+        same_actions = same_actions.dropna(subset=[col])
         edge_same_event = torch.tensor([], dtype=torch.long)
         while len(same_actions) > 0:
             print(len(same_actions))
             same_action_nodes = (same_actions[col] == same_actions.iloc[0][col])#.nonzero().squeeze()
             cartesian_product = list(product(same_actions[same_action_nodes]['GlobalEventID'], repeat=2))
-            edges = [[x, y] for x, y in cartesian_product if x != y and cartesian_product.index((x, y)) < cartesian_product.index((y, x))]
+            # edges = [[x, y] for x, y in cartesian_product if x < y]
+            edges = cartesian_product
+            print('on est la')
             edges_t = torch.tensor(list(zip(*edges)))
             edge_same_event = torch.cat((edge_same_event, edges_t), dim=1)
             same_actions = same_actions.drop(same_actions[same_action_nodes].index)
@@ -28,10 +36,16 @@ class EventConnexionPreprocessing(Preprocessing):
         edge_same_event = torch.tensor([edge_same_event_0,edge_same_event_1])
         # print(edge_same_event)
 
-        return edge_same_event
+        return edge_same_event        
     
+    def _define_features_events(self,df):
+        df = super(EventConnexionPreprocessing,self)._define_features_events(df)
+        df = df.drop(EMBEDDING_EVENT,axis=1)
+        df = df.dropna(subset=IF_NO_EMBEDDING_KEEP)
+        df = pd.get_dummies(df, columns=IF_NO_EMBEDDING_KEEP)
+        return df.astype(float)
     
-    def create_graph(self,labels,df_events,df_mentions,col = "EventCode",mode = "train"): 
+    def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
         df_mentions,labels_sorted,mapping_source,y = self._create_label_node(labels,df_mentions)
         df_mentions,mapping_article,df_article_sorted = self._create_non_label_node(df_mentions)
@@ -41,15 +55,12 @@ class EventConnexionPreprocessing(Preprocessing):
     
         edge_mentionné,event_map = self._create_mentionne_edge(df_mentions,mapping_article,mapping_source)
         
-        edge_same_event = self._create_same_column_edge(col,df_events,event_map)
+        edge_same_event = self._create_same_column_edge(self.col,df_events,event_map)
         
-        # Create attributes for the mentionné edges
-        # df_mentions_edges = df_mentions.drop(["GlobalEventID","MentionIdentifier","MentionSourceName"], axis = 1)
-
-        # temporarily remove almost all columns for simplicity
-        # NOTE we will add the fonction _define_features here
-        df_events_sorted_temp = df_events_sorted[["Day"]] 
-        # df_mentions_edges_temp = df_mentions_edges[["EventTimeDate"]]
+        # NOTE idealy, this function should be applied separately to the train and to the test
+        df_events_sorted_temp = self._define_features_events(df_events_sorted) 
+        # print(df_events_sorted_temp)
+        
         labels_sorted_temp = labels_sorted.copy()
         labels_sorted_temp["y"] = y
 
@@ -63,8 +74,6 @@ class EventConnexionPreprocessing(Preprocessing):
         
         # data['source'].y = y
         data['event'].x = torch.from_numpy(df_events_sorted_temp.to_numpy()).to(dtype=torch.float32)
-
-        # data['event', 'mentionne', 'article'].edge_attr = torch.from_numpy(df_mentions_edges_temp.to_numpy())
 
         data['event', 'mentionne', 'article'].edge_index = torch.from_numpy(edge_mentionné).to(dtype=torch.long)
         data['source', 'est_source_de', 'article'].edge_index = torch.from_numpy(edge_est_source_de).to(dtype=torch.long)
