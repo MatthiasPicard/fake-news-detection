@@ -26,7 +26,7 @@ if __name__ == "__main__":
     random.seed(42)
     torch.manual_seed(42)
     
-    nb_event_csv = 100 # TODO: fail at 17 if label = source ( bug fixé mais un peu à la zob)
+    nb_event_csv = 100 # TODO: (672 for a week)
     nb_mentions_csv = 100
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     "out_channels": 2,
     "n_heads": 4,
     "dropout": 0.2,
-    "nb_epoch": 300,
+    "nb_epoch": 30,
     
     "lr": 0.005,
     "weight_decay":0.001

@@ -51,15 +51,47 @@ class SimpleTraining(Training):
             out = self.model(self.data.x_dict, self.data.edge_index_dict)
         
         liste_loss = []
+        liste_f1 = []
+        liste_precision = []
+        liste_recall = []
+        
         for epoch in range(0, self.nb_epoch):
             loss = self._train_one_epoch()
             liste_loss.append(loss)
-            train_acc, test_acc = self.test()
+            train_acc, test_acc,precision,recall,f1 = self.test()
+            liste_precision.append(precision)
+            liste_recall.append(recall)
+            liste_f1.append(f1) 
             print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, Test: {test_acc:.4f}')
             
         self._final_audit()
          
-        plt.plot(liste_loss)   
+        plt.figure(figsize=(10, 6))
+        plt.subplot(2, 2, 1)
+        plt.plot(liste_loss)
+        plt.title('Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+
+        plt.subplot(2, 2, 2)
+        plt.plot(liste_precision)
+        plt.title('Precision')
+        plt.xlabel('Epoch')
+        plt.ylabel('Precision')
+
+        plt.subplot(2, 2, 3)
+        plt.plot(liste_recall)
+        plt.title('Recall')
+        plt.xlabel('Epoch')
+        plt.ylabel('Recall')
+
+        plt.subplot(2, 2, 4)
+        plt.plot(liste_f1)
+        plt.title('F1 Score')
+        plt.xlabel('Epoch')
+        plt.ylabel('F1 Score')
+
+        plt.tight_layout()
         plt.show()
 
     def _train_one_epoch(self) -> float:
@@ -91,6 +123,10 @@ class SimpleTraining(Training):
             mask = self.data[self.label][split]
             acc = (pred[mask] == self.data[self.label].y[mask]).sum() / mask.sum()
             accs.append(float(acc))
-        return accs
+        
+        precision = precision_score(self.data[self.label].y[mask].long(),pred[mask])
+        recall = recall_score(self.data[self.label].y[mask].long(),pred[mask])
+        f1 = f1_score(self.data[self.label].y[mask].long(),pred[mask])
+        return accs[0], accs[1],precision,recall,f1
     
     
