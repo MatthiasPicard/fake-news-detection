@@ -4,28 +4,20 @@
 
 import torch
 from torch_geometric.nn import GCNConv
+import torch.nn.functional as F
 
-class convGNN(torch.nn.Module):
-    
-    def __init__(self,metadata,hidden_channels,out_channels,n_heads,dropout=None):
-        super(convGNN, self).__init__()
-        
-        self.metadata = metadata
-        self.hidden_channels = hidden_channels
-        self.out_channels = out_channels
-        self.n_heads = n_heads
-        self.dropout = dropout
-        
-        self.conv1 = GCNConv(self.metadata.num_features, self.hidden_channels)
-        self.lin = torch.nn.Linear(self.hidden_channels, self.out_channels)
-               
+class GCN(torch.nn.Module):
+    def __init__(self, data):
+        super().__init__()
+        self.conv1 = GCNConv(data.num_node_features, 16)
+        self.conv2 = GCNConv(16, 2)
 
-    def forward(self, x_dict, edge_index_dict):
-    
-        x = self.conv1(x_dict[self.metadata.label], edge_index_dict[self.metadata.label])
-        # print(x)
-        # x = x.relu()
-        # x = self.han_conv_1(x, edge_index_dict)
-        x = self.lin(x[self.label])
-        return x
-    
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, training=self.training)
+        x = self.conv2(x, edge_index)
+
+        return F.log_softmax(x, dim=1)

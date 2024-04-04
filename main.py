@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     label = "source"
     is_mixte = True
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     args_simple_connexions_HAN_1 = {
     "list_mention": list_mention,
@@ -56,9 +56,9 @@ if __name__ == "__main__":
     args_load_graph = {key:args_simple_connexions_HAN_1[key] for key in list_arg_load_graph}
 
        
-    fake_news_detector = SimpleConnexionsHAN(label,is_mixte,device) 
+    #fake_news_detector = SimpleConnexionsHAN(label,is_mixte,device) 
     # fake_news_detector = CloseEventsConnexionsHAN(label,is_mixte,device,col="Actor1Name") 
-    # fake_news_detector = EmbeddedFeaturesEventHAN(label,is_mixte,device)
+    fake_news_detector = EmbeddedFeaturesEventHAN(label,is_mixte,device)
     fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     # fake_news_detector.create_graph_and_save(**args_save_graph,name = name_save)
     # fake_news_detector.import_graph_and_train_on_model(**args_load_graph,name = name_load)

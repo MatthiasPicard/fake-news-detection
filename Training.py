@@ -1,4 +1,3 @@
-from collections import Counter
 import torch
 import torch.nn.functional as F
 from abc import ABC, abstractmethod
@@ -23,17 +22,18 @@ class Training(ABC):
     @torch.no_grad()
     def _final_audit(self):
         
+        
+        
         mask = self.data[self.label].test_mask
         pred = self.model(self.data.x_dict, self.data.edge_index_dict).argmax(dim=-1)
-        print(pred[mask])
-        print(self.data[self.label].y[mask].long())
         precision = precision_score(self.data[self.label].y[mask].long(),pred[mask])
         recall = recall_score(self.data[self.label].y[mask].long(),pred[mask])
         f1 = f1_score(self.data[self.label].y[mask].long(),pred[mask])
-
-        print("Precision:", precision)
+        
+        """print("Precision:", precision)
         print("Recall:", recall)
-        print("F1 Score:", f1)
+        print("F1 Score:", f1)"""
+        return precision, recall, f1
 
 
 class SimpleTraining(Training):
@@ -45,38 +45,36 @@ class SimpleTraining(Training):
         self.nb_epoch = nb_epoch
         self.label = label
         
-    def train(self,loader):
+    def train(self,train_loader):
 
         with torch.no_grad():
-            
             out = self.model(self.data.x_dict, self.data.edge_index_dict)
         
+        
         for epoch in range(0, self.nb_epoch):
-            loss = self._train_one_epoch(loader)
+            loss = self._train_one_epoch(train_loader)
             train_acc, test_acc = self.test()
-            print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, Test: {test_acc:.4f}')
-            
-        self._final_audit()    
+            #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, Test: {test_acc:.4f}')
+        #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, Test: {test_acc:.4f}')   
+        return self._final_audit()    
 
-    
-
-    def _train_one_epoch(self, dataloader) :
-        self.model.train()
-        self.optimizer.zero_grad()
-        out = self.model(self.data.x_dict, self.data.edge_index_dict)
-        mask = self.data[self.label].train_mask
-        b_counter = Counter(self.data[self.label].y[mask].long().detach().cpu().tolist())
-        print(b_counter)
-        b_weights = torch.tensor([sum(self.data[self.label].y[mask].long().detach().cpu().tolist()) / b_counter[label] if b_counter[label] > 0 else 0 for label in range(2)])
-        print(b_weights)
-        # b_weights = b_weights.to(self.device)
-        # print(mask)
-        # print(out)
-        # print(self.data['source'].y[mask])
-        loss_function = nn.CrossEntropyLoss(weight=b_weights)
-        loss = loss_function(out[mask], self.data[self.label].y[mask].long())
-        loss.backward()
-        self.optimizer.step()
+    def _train_one_epoch(self,train_loader) -> float:
+        
+        for batch in train_loader:
+            self.model.train()
+            self.optimizer.zero_grad()
+            out = self.model(batch.x_dict, batch.edge_index_dict)
+            mask = batch[self.label].train_mask
+            b_counter = Counter(batch[self.label].y[mask].long().detach().cpu().tolist())
+            b_weights = torch.tensor([sum(batch[self.label].y[mask].long().detach().cpu().tolist()) / b_counter[label] if b_counter[label] > 0 else 0 for label in range(2)])
+            # b_weights = b_weights.to(self.device)
+            # print(mask)
+            # print(out)
+            # print(self.data['source'].y[mask])
+            loss_function = nn.CrossEntropyLoss(weight=b_weights)
+            loss = loss_function(out[mask], batch[self.label].y[mask].long())
+            loss.backward()
+            self.optimizer.step()
         return float(loss)
 
     @torch.no_grad()
@@ -90,5 +88,4 @@ class SimpleTraining(Training):
             acc = (pred[mask] == self.data[self.label].y[mask]).sum() / mask.sum()
             accs.append(float(acc))
         return accs
-    
     
