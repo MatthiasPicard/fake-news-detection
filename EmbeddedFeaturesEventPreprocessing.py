@@ -7,6 +7,7 @@ import torch_geometric.transforms as T
 from itertools import product
 from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 from sentence_transformers import SentenceTransformer
+from torch_geometric.utils import degree
 
 
 class EmbeddedFeaturesEventPreprocessing(Preprocessing):
@@ -56,6 +57,9 @@ class EmbeddedFeaturesEventPreprocessing(Preprocessing):
         # print(df)
         # print(df.columns)
         return df.astype(float)
+    
+    
+    
                      
     def create_graph(self,labels,df_events,df_mentions,mode = "train"): 
         
@@ -93,6 +97,12 @@ class EmbeddedFeaturesEventPreprocessing(Preprocessing):
 
         data[self.label].y = pd.Series(data[self.label].x[:,1].numpy())
         data[self.label].x = np.delete(data[self.label].x, 1, axis=1)
+        
+        """
+        data['source'].x = torch.cat([data['source'].x, degree(data['source', 'est_source_de', 'article'].edge_index[0], num_nodes=data['source'].num_nodes).view(-1, 1).to(torch.float32)], dim=-1)
+        data['source'].x = torch.cat([data['source'].x, degree(data['source', 'est_source_de', 'article'].edge_index[1], num_nodes=data['source'].num_nodes).view(-1, 1).to(torch.float32)], dim=-1)
+        """
+        
 
         data_undirected = T.ToUndirected()(data)
         # data_undirected = data
@@ -107,6 +117,9 @@ class EmbeddedFeaturesEventPreprocessing(Preprocessing):
         data_undirected[self.label].train_mask = train_mask
         data_undirected[self.label].test_mask = test_mask
         data_undirected[self.label].y = torch.from_numpy(data_undirected[self.label].y.to_numpy())
+        
+
+        
         
         if mode == "analyse":
             if self.label == "source":

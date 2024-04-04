@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     label = "source"
     is_mixte = True
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     args_simple_connexions_HAN_1 = {
     "list_mention": list_mention,
