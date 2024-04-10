@@ -47,7 +47,7 @@ class TrainingService(ABC):
         training_process = SimpleTraining(data,model,optimizer,nb_epoch,self.label)
         training_process.train(train_loader)
     
-    def create_graph_and_save_model(self):
+    def create_graph_and_save(self):
         pass
     
     
@@ -139,7 +139,7 @@ class EmbeddedFeaturesEventAndConnexionstHAN(CloseEventsConnexionsHAN):
         training_process.train(train_loader)
     
     def create_graph_and_save(self,list_event,list_mention,name):
-        preprocessing = EventConnexionPreprocessing(self.label,self.is_mixte,self.col)
+        preprocessing = EmbeddedFeaturesEventAndConnexionPreprocessing(self.label,self.is_mixte,self.col)
         labels,df_events,df_mentions = preprocessing.data_load(list_event,list_mention)
         data = preprocessing.create_graph(labels,df_events,df_mentions)
         if not os.path.exists(SAVED_GRAPHS_DIR):

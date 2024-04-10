@@ -9,9 +9,13 @@ from tqdm import tqdm
 
 class Training(ABC):
     
-    @abstractmethod
-    def __init__(self):
-        pass
+    def __init__(self,data,model,optimizer,nb_epoch,label):
+        self.data = data
+        self.model = model
+        self.optimizer = optimizer
+        self.nb_epoch = nb_epoch
+        self.label = label
+    
     
     @abstractmethod
     def train(self):
@@ -37,13 +41,6 @@ class Training(ABC):
 
 
 class SimpleTraining(Training):
-    
-    def __init__(self,data,model,optimizer,nb_epoch,label):
-        self.data = data
-        self.model = model
-        self.optimizer = optimizer
-        self.nb_epoch = nb_epoch
-        self.label = label
         
     def train(self,train_loader):
 
@@ -58,7 +55,8 @@ class SimpleTraining(Training):
         for epoch in range(0, self.nb_epoch):
             loss = self._train_one_epoch(train_loader)
             liste_loss.append(loss)
-            train_acc, test_acc,precision,recall,f1 = self.test()
+            if epoch % 10 == 0:
+                train_acc, test_acc,precision,recall,f1 = self.test()
             liste_f1.append(f1)
             liste_precision.append(precision)
             liste_recall.append(recall)
@@ -90,7 +88,7 @@ class SimpleTraining(Training):
             # print(mask)
             # print(out)
             # print(self.data['source'].y[mask])
-            loss_function = nn.CrossEntropyLoss(weight=b_weights)
+            loss_function = nn.CrossEntropyLoss()#weight=b_weights
             loss = loss_function(out[mask], batch[self.label].y[mask].long())
             loss.backward()
             self.optimizer.step()

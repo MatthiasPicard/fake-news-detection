@@ -18,7 +18,7 @@ class EventConnexionPreprocessing(Preprocessing):
         
                 
     def _create_same_column_edge(self,col,df_events,event_map):
-        
+        # print(len(list(event_map["index"])))
         same_actions = df_events[["GlobalEventID",col]]
         same_actions = same_actions.dropna(subset=[col])
         edge_same_event = torch.tensor([], dtype=torch.long)
@@ -33,20 +33,15 @@ class EventConnexionPreprocessing(Preprocessing):
             edge_same_event = torch.cat((edge_same_event, edges_t), dim=1)
             same_actions = same_actions.drop(same_actions[same_action_nodes].index)
         df = pd.DataFrame(edge_same_event).transpose()
+        print(df.shape)
         df[0] = df[0].map(event_map["index"])
         df[1] = df[1].map(event_map["index"])
         df = df.dropna(axis=0, how='any')
-        # print(df)
-        # print(df.isna().sum())
-        # print(pd.DataFrame(edge_same_event)[0].map(event_map["index"]))
-        # print(pd.DataFrame(edge_same_event)[1].map(event_map["index"]))
         edge_same_event_0 = list(df[0].astype(int))
         edge_same_event_1 = list(df[1].astype(int))
-        # print(edge_same_event_1)
         edge_same_event = torch.tensor([edge_same_event_0,edge_same_event_1])
         edge_same_event, _ = remove_self_loops(edge_same_event)
         print(len(edge_same_event[0]))
-        # print(edge_same_event)
         return edge_same_event        
     
     def _define_features_events(self,df):

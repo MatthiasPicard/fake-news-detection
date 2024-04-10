@@ -26,12 +26,12 @@ if __name__ == "__main__":
     random.seed(42)
     torch.manual_seed(42)
     
-    nb_event_csv = 50 # TODO: (672 for a week)
-    nb_mentions_csv = 50
+    nb_event_csv = 1 # TODO: (672 for a week)
+    nb_mentions_csv = 1
     list_mention = get_csv_files("gdelt_data", nb_mentions_csv)
     list_event = get_csv_files("gdelt_data_event",nb_event_csv)
 
-    label = "article"
+    label = "source"
     is_mixte = False
     device = torch.device('cpu')
 
@@ -44,14 +44,14 @@ if __name__ == "__main__":
     "n_heads": 4,
     "dropout": 0.2,
     "nb_epoch": 300,
-    "batch_size": 256,
+    "batch_size": 512,
     
-    "lr": 0.01,
+    "lr": 0.005,
     "weight_decay":0.001
     }
     
-    name_save = "50_source_50_event_ismixte_False_connexions_Article_Actor1Name"
-    name_load = "50_source_50_event_ismixte_False_connexions_Article_Actor1Name"
+    name_save = "35_source_35_event_ismixte_False_connexions_article_Actor1Name"
+    name_load = "35_source_35_event_ismixte_False_connexions_article_Actor1Name"
     list_arg_save_graph = ["list_mention",'list_event']
     list_arg_load_graph = ["hidden_channels","out_channels","n_heads","dropout","nb_epoch","lr","weight_decay","batch_size"]
     args_save_graph = {key:args_simple_connexions_HAN_1[key] for key in list_arg_save_graph}
@@ -59,22 +59,22 @@ if __name__ == "__main__":
 
       
     # fake_news_detector = SimpleConnexionsHAN(label,is_mixte,device) 
-    fake_news_detector = CloseEventsConnexionsHAN(label,is_mixte,device,col="Actor1Name") 
+    # fake_news_detector = CloseEventsConnexionsHAN(label,is_mixte,device,col="Actor1Name") 
     # fake_news_detector = EmbeddedFeaturesEventHAN(label,is_mixte,device)
     # fake_news_detector = EmbeddedFeaturesEventAndConnexionstHAN(label,is_mixte,device,col="Actor1Name") 
     # fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     
     # fake_news_detector.create_graph_and_save(**args_save_graph,name = name_save)
-    fake_news_detector.import_graph_and_train_on_model(**args_load_graph,name = name_load)
+    # fake_news_detector.import_graph_and_train_on_model(**args_load_graph,name = name_load)
 
 
     # TODO tester différents hyperparamètres
     # TODO tester différents models
     # TODO avec des features ça serait sans doute mieux
         
-    # analyse = GraphViz(label,list_event,list_mention)
+    analyse = GraphViz(label,list_event,list_mention,is_mixte)
     # analyse.get_recap()
-    # analyse.display_graph()
+    analyse.display_graph()
 
 
 

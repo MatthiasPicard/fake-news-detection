@@ -1,20 +1,22 @@
 import networkx as nx
 from SimplePreprocessing import SimplePreprocessing
+from EventConnexionPreprocessing import EventConnexionPreprocessing
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
 #TODO still kinda experimental
 class GraphViz():
-    def __init__(self,label,list_event,list_mention):
+    def __init__(self,label,list_event,list_mention,is_mixte=False):
         self.label = label
         self.list_event = list_event
         self.list_mention = list_mention
+        self.is_mixte = is_mixte
         
         self.data_undirected,self.df_article_sorted,self.labels_sorted,self.df_events_sorted_temp,self.edge_mentionné,self.edge_est_source_de,self.y = self._retrieve_data_for_viz()
     #self.edge_same_event,
     def _retrieve_data_for_viz(self):
-        preprocessing = SimplePreprocessing(self.label)
+        preprocessing = SimplePreprocessing(self.label,self.is_mixte)
         labels,df_events,df_mentions = preprocessing.data_load(self.list_event,self.list_mention)
         return preprocessing.create_graph(labels,df_events,df_mentions,mode="analyse")
     
@@ -135,5 +137,11 @@ class GraphViz():
                 node_shape = 's',
                 alpha=0.9,
             )
+        
+        node_colors = {'Article': 'y', 'Fake Source': 'r', 'True Source': 'g', 'Unknown Source': 'b', 'Event': 'm'}
+        legend_labels = {node_type: plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=node_type) for node_type, color in node_colors.items()}
+        plt.legend(legend_labels.values(), legend_labels.keys(), loc='upper right')
+        plt.axis('off')
         plt.show()
+        
         
