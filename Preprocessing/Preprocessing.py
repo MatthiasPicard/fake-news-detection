@@ -41,10 +41,8 @@ REMOVE_EVENT = ["Year","DATEADDED","SOURCEURL","EventBaseCode","IsRootEvent",
             "Actor2Geo_Lat","Actor2Geo_Long","ActionGeo_Lat","ActionGeo_Long",
             "Actor1Type1Code","Actor2Type1Code","Day","MonthYear"]
 
-# NOTE we could also probably keep  them if embedding except EventRootCode
 IF_NO_EMBEDDING_KEEP = ["Actor1Geo_Type","Actor2Geo_Type","ActionGeo_Type","EventRootCode"]
 
-# NOTE would be nice if we could include dates
 ENCODING_EVENT = ["QuadClass"]
 
 RESCALE_EVENT = ["FractionDate"] # NOTE "GoldsteinScale" has a special rescaling
@@ -54,7 +52,8 @@ EMBEDDING_EVENT = ["Actor1Name","Actor1CountryCode","Actor2Name","Actor2CountryC
 "Actor2Geo_CountryCode","ActionGeo_Fullname","ActionGeo_CountryCode"]
 
 class Preprocessing(ABC): # NOTE variable names are misleading if self.label = article
-
+    """Base Class for all preprocessing class. Define the basic function to create the graph"""
+    
     def __init__(self,label,is_mixte):
         self.label = label
         self.is_mixte = is_mixte
@@ -66,7 +65,8 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
             self.non_label_column = "MentionSourceName"
     
     def data_load(self,list_event,list_mention):
-    
+        """Load the labels of the node we want to label"""
+        
         if self.label == "source":
             
             if self.is_mixte:
@@ -102,6 +102,8 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
     
     @abstractmethod
     def _define_features_events(self,df):
+        """Basic feature engineering"""
+        
         df = df.drop(REMOVE_EVENT, axis=1)
         df = df.dropna(subset=ENCODING_EVENT+RESCALE_EVENT)
         df = pd.get_dummies(df, columns=ENCODING_EVENT)
@@ -122,10 +124,9 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
         labels_sorted = labels_sorted.reset_index(drop=False)
         mapping_source = labels_sorted["links"]
         labels_sorted["random"] = np.random.rand(len(labels_sorted))
-        y = labels_sorted["is_fake"]#.apply(lambda x:int(x) if not pd.isna(x) else x )
+        y = labels_sorted["is_fake"]
         labels_sorted = labels_sorted[["random"]]
-        df_mentions[self.label_column] = df_mentions[self.label_column].map(label_mapping_source)
-            
+        df_mentions[self.label_column] = df_mentions[self.label_column].map(label_mapping_source)    
         return df_mentions,labels_sorted,mapping_source,y
     
     def _create_non_label_node(self,df_mentions):
@@ -140,7 +141,6 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
         df_article_sorted["random"] = np.random.rand(len(df_article_sorted))
         df_article_sorted = df_article_sorted[["random"]]
         df_mentions[self.non_label_column] = df_mentions[self.non_label_column].map(label_mapping_article)
-
         return df_mentions,mapping_article,df_article_sorted
 
     def _create_event_node(self,df_events,df_mentions):
@@ -148,7 +148,6 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
         label_encoder_event = LabelEncoder()
         df_events['GlobalEventID'] = label_encoder_event.fit_transform(df_events['GlobalEventID'])
         label_mapping_event = dict(zip(label_encoder_event.classes_, label_encoder_event.transform(label_encoder_event.classes_)))
-        # df_events['GlobalEventID'] = df_events['GlobalEventID'].map(label_mapping_event)
         # The three next lines seems to not be important
         df_events_sorted = df_events.sort_values(by="GlobalEventID").set_index("GlobalEventID")
         df_events_sorted = df_events_sorted.reset_index(drop=False)
@@ -159,23 +158,20 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
   
     def _create_est_source_de_edge(self,df_mentions,mapping_article,mapping_source):
         
-        df_mentions = df_mentions.dropna(subset = ["GlobalEventID"]) # because we encoded on events -> try to change that
+        df_mentions = df_mentions.dropna(subset = ["GlobalEventID"])
         est_source_de = df_mentions[["MentionSourceName","MentionIdentifier"]]
-
         article_map = mapping_article.reset_index().set_index(self.non_label_column).to_dict()
         est_source_de[self.non_label_column] = est_source_de[self.non_label_column].map(article_map["index"]).astype(int)
         source_map = mapping_source.reset_index().set_index("links").to_dict()
-        est_source_de[self.label_column] = est_source_de[self.label_column].map(source_map["index"]) # Bugfix attempt, may be suboptimal
+        est_source_de[self.label_column] = est_source_de[self.label_column].map(source_map["index"])
         est_source_de = est_source_de.dropna(subset=[self.label_column])
         est_source_de[self.label_column] = est_source_de[self.label_column].astype(int)
         edge_est_source_de = est_source_de[["MentionSourceName", "MentionIdentifier"]].values.transpose()
-    
         return edge_est_source_de,df_mentions
     
     def _create_mentionne_edge(self,df_mentions,mapping_article,mapping_source):
         
         mentionné = df_mentions[["GlobalEventID","MentionIdentifier"]]
-
         if self.label == "source":
             article_map = mapping_article.reset_index().set_index("MentionIdentifier").to_dict()
             mentionné["MentionIdentifier"] = mentionné["MentionIdentifier"].map(article_map["index"]).astype(int)
@@ -186,11 +182,9 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
 
         event_map = mapping_source.reset_index().set_index("links").to_dict()
         mentionné["GlobalEventID"] = mentionné["GlobalEventID"].map(event_map["index"])
-        mentionné = mentionné.dropna(subset=["GlobalEventID"]) # Bugfix attempt, may be suboptimal
+        mentionné = mentionné.dropna(subset=["GlobalEventID"])
         mentionné["GlobalEventID"] = mentionné["GlobalEventID"].astype(int)
-        # print(mentionné["GlobalEventID"].isna().value_counts())
         edge_mentionné = mentionné[["GlobalEventID", "MentionIdentifier"]].values.transpose()
-    
         return edge_mentionné,event_map
     
     @abstractmethod

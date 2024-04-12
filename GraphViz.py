@@ -1,11 +1,12 @@
 import networkx as nx
-from SimplePreprocessing import SimplePreprocessing
-from EventConnexionPreprocessing import EventConnexionPreprocessing
+from Preprocessing.SimplePreprocessing import SimplePreprocessing
+from Preprocessing.EventConnexionPreprocessing import EventConnexionPreprocessing
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-#TODO still kinda experimental
+# Experimental class
+
 class GraphViz():
     def __init__(self,label,list_event,list_mention,is_mixte=False):
         self.label = label
@@ -24,7 +25,7 @@ class GraphViz():
         print(pd.Series(self.data_undirected[self.label].y).value_counts(dropna=False))
     
     def display_graph(self):
-                
+               
         G = nx.MultiDiGraph()
 
         ag_list = []

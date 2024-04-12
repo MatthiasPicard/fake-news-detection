@@ -10,6 +10,9 @@ from tqdm import tqdm
 import zipfile
 import numpy as np
  
+ # This file is used to get data from GDELT and label it
+ 
+ 
 if __name__=="__main__":
  
     years = ["2023"]#

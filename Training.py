@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 class Training(ABC):
+    """Parent class of all training classes that should implement the training process and an evaluation"""
     
     def __init__(self,data,model,optimizer,nb_epoch,label):
         self.data = data
@@ -27,23 +28,20 @@ class Training(ABC):
     
     @torch.no_grad()
     def _final_audit(self):
+        """ Get some important metrics at the end of the evaluation """
         
         mask = self.data[self.label].test_mask
         pred = self.model(self.data.x_dict, self.data.edge_index_dict).argmax(dim=-1)
         precision = precision_score(self.data[self.label].y[mask].long(),pred[mask])
         recall = recall_score(self.data[self.label].y[mask].long(),pred[mask])
         f1 = f1_score(self.data[self.label].y[mask].long(),pred[mask])
-        
-        """print("Precision:", precision)
-        print("Recall:", recall)
-        print("F1 Score:", f1)"""
         return precision, recall, f1
 
 
 class SimpleTraining(Training):
-        
+    """Implement a basic training function with classic metrics for a classification task"""
+    
     def train(self,train_loader):
-
         with torch.no_grad():
             out = self.model(self.data.x_dict, self.data.edge_index_dict)
         
@@ -51,7 +49,7 @@ class SimpleTraining(Training):
         liste_f1 = []
         liste_precision = []
         liste_recall = []
-        
+    
         for epoch in range(0, self.nb_epoch):
             loss = self._train_one_epoch(train_loader)
             liste_loss.append(loss)
@@ -96,6 +94,8 @@ class SimpleTraining(Training):
 
     @torch.no_grad()
     def test(self):
+        """Get some metrics on the trainset and the testset"""
+        
         self.model.eval()
         pred = self.model(self.data.x_dict, self.data.edge_index_dict).argmax(dim=-1)
 
@@ -108,6 +108,5 @@ class SimpleTraining(Training):
         precision = precision_score(self.data[self.label].y[mask].long(),pred[mask])
         recall = recall_score(self.data[self.label].y[mask].long(),pred[mask])
         f1 = f1_score(self.data[self.label].y[mask].long(),pred[mask])
-        
         return accs[0], accs[1],precision,recall,f1
     
