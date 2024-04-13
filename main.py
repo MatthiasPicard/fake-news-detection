@@ -52,7 +52,7 @@ if __name__ == "__main__":
     "out_channels": 2,
     "n_heads": 4,
     "dropout": 0.2,
-    "nb_epoch": 30,
+    "nb_epoch": 300,
     "batch_size": 256,
     "lr": 0.005,
     "weight_decay":0.001
