@@ -5,7 +5,7 @@ from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
 from itertools import product
-from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
+from Preprocessing.Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 from sentence_transformers import SentenceTransformer
 from torch_geometric.utils import degree
 
@@ -17,7 +17,6 @@ class EmbeddedFeaturesEventPreprocessing(Preprocessing):
         """Adapt the event features to incorporate the embedding of the CAMEO components """
 
         df = super(EmbeddedFeaturesEventPreprocessing,self)._define_features_events(df)
-        print(df.columns)
         df = df.drop(IF_NO_EMBEDDING_KEEP, axis=1)
         df = self._define_embedding_event(df)
         return df
@@ -54,6 +53,7 @@ class EmbeddedFeaturesEventPreprocessing(Preprocessing):
         embeddings = model.encode(df['sentence'])
         df = pd.concat([df,pd.DataFrame(embeddings)],axis = 1)
         df = df.drop(['sentence'],axis=1)
+        print(df.columns)
         return df.astype(float)
                          
     def create_graph(self,labels,df_events,df_mentions,mode = "train"): 

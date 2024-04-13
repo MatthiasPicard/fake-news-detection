@@ -6,7 +6,7 @@ from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
 from itertools import product
-from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
+from Preprocessing.Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 from torch_geometric.utils import remove_self_loops
 
 

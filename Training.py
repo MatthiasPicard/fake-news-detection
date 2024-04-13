@@ -72,21 +72,16 @@ class SimpleTraining(Training):
         plt.show()
           
 
-    def _train_one_epoch(self,train_loader) -> float:
-        print(len(train_loader))
+    def _train_one_epoch(self,train_loader):
+        # print(len(train_loader))
         for batch in tqdm(train_loader):
-            # print(batch)
             self.model.train()
             self.optimizer.zero_grad()
-            out = self.model(batch.x_dict, batch.edge_index_dict)#[self.label][:batch_size]
+            out = self.model(batch.x_dict, batch.edge_index_dict)
             mask = batch[self.label].train_mask
             b_counter = Counter(batch[self.label].y[mask].long().detach().cpu().tolist())
             b_weights = torch.tensor([sum(batch[self.label].y[mask].long().detach().cpu().tolist()) / b_counter[label] if b_counter[label] > 0 else 0 for label in range(2)])
-            # b_weights = b_weights.to(self.device)
-            # print(mask)
-            # print(out)
-            # print(self.data['source'].y[mask])
-            loss_function = nn.CrossEntropyLoss()#weight=b_weights
+            loss_function = nn.CrossEntropyLoss()#weight=b_weights)
             loss = loss_function(out[mask], batch[self.label].y[mask].long())
             loss.backward()
             self.optimizer.step()
@@ -104,7 +99,8 @@ class SimpleTraining(Training):
             mask = self.data[self.label][split]
             acc = (pred[mask] == self.data[self.label].y[mask]).sum() / mask.sum()
             accs.append(float(acc))
-            
+        
+        # Get some metrics on the testset    
         precision = precision_score(self.data[self.label].y[mask].long(),pred[mask])
         recall = recall_score(self.data[self.label].y[mask].long(),pred[mask])
         f1 = f1_score(self.data[self.label].y[mask].long(),pred[mask])

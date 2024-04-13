@@ -117,6 +117,11 @@ class Preprocessing(ABC): # NOTE variable names are misleading if self.label = a
 
     def _create_label_node(self,labels,df_mentions): 
         
+        # Brute-force attempt to rebalance the dataset
+        rows_label_0 = labels[labels['is_fake'] == 0]
+        rows_to_remove = np.random.choice(rows_label_0.index, size=int(len(rows_label_0) * 0.97), replace=False)
+        labels.loc[rows_to_remove, 'is_fake'] = np.nan
+        
         label_encoder_source = LabelEncoder()
         labels['links'] = label_encoder_source.fit_transform(labels['links'])
         label_mapping_source = dict(zip(label_encoder_source.classes_, label_encoder_source.transform(label_encoder_source.classes_)))

@@ -5,10 +5,8 @@ from torch_geometric.data import HeteroData
 import torch
 import torch_geometric.transforms as T
 from itertools import product
-from Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
+from Preprocessing.Preprocessing import Preprocessing,EMBEDDING_EVENT,IF_NO_EMBEDDING_KEEP
 from sentence_transformers import SentenceTransformer
-from EventConnexionPreprocessing import EventConnexionPreprocessing
-from EmbeddedFeaturesEventPreprocessing import EmbeddedFeaturesEventPreprocessing
 from torch_geometric.utils import remove_self_loops
 
 
@@ -48,7 +46,6 @@ class EmbeddedFeaturesEventAndConnexionPreprocessing(Preprocessing):
         """Adapt the event features to incorporate the embedding of the CAMEO components """
 
         df = super(EmbeddedFeaturesEventAndConnexionPreprocessing,self)._define_features_events(df)
-        print(df.columns)
         df = df.drop(IF_NO_EMBEDDING_KEEP, axis=1)
         df = self._define_embedding_event(df)
         return df
