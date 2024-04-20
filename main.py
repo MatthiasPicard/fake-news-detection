@@ -58,8 +58,8 @@ if __name__ == "__main__":
     "weight_decay":0.001
     }
     
-    name_save = "test"
-    name_load = "test"
+    name_save = "test_graph_github"
+    name_load = "test_graph_github"
     list_arg_save_graph = ["list_mention",'list_event']
     list_arg_load_graph = ["hidden_channels","out_channels","n_heads","dropout","nb_epoch","lr","weight_decay","batch_size"]
     args_save_graph = {key:args_simple_connexions_HAN_1[key] for key in list_arg_save_graph}
@@ -75,9 +75,9 @@ if __name__ == "__main__":
     
     """ save a graph, train on a graph, or create on the fly and train """
     
-    fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
+    # fake_news_detector.create_graph_and_train_on_model(**args_simple_connexions_HAN_1)
     # fake_news_detector.create_graph_and_save(**args_save_graph,name = name_save)
-    # fake_news_detector.import_graph_and_train_on_model(**args_load_graph,name = name_load)
+    fake_news_detector.import_graph_and_train_on_model(**args_load_graph,name = name_load)
         
     """ experimental: visualize the graph """
         

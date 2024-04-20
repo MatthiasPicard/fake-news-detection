@@ -51,11 +51,11 @@ if __name__=="__main__":
                             print(f"Failed for this one ({year+month+day+hour+minute})")
  
     data = pd.read_csv("../mediabiasfactcheck/mediabiasfactcheck.csv")
-    unreliable_labels = ['MBFCLow.png', 'MBFCVeryLow.png',"MBFCMixed.png"]
-    reliable_labels = ["MBFCHigh.png","MBFCMostlyFactual.png","MBFCVeryhigh.png"]
+    unreliable_labels = ['MBFCLow.png', 'MBFCVeryLow.png']
+    reliable_labels = ["MBFCMixed.png","MBFCHigh.png","MBFCMostlyFactual.png","MBFCVeryhigh.png"]
     unreliable_ = data[data['image_factual'] == 'MBFCLow.png']["url"].unique().tolist()
     unreliable_ = unreliable_ + data[data['image_factual'] == 'MBFCVeryLow.png']["url"].unique().tolist()
-    unreliable_ = unreliable_ + data[data['image_factual'] == "MBFCMixed.png"]["url"].unique().tolist()
+    # unreliable_ = unreliable_ + data[data['image_factual'] == "MBFCMixed.png"]["url"].unique().tolist()
     reliable_ = data[data['image_factual'].isin(reliable_labels)]["url"].unique().tolist()
     unreliable = []
     reliable = []
