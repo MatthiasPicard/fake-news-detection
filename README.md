@@ -1,4 +1,4 @@
-# Détection massive de Fake news à partir de la base de données GDELT
+# Massive Fake News Detection using the GDELT Database
 
 Create a heterogenous graph using the GDELT database containing the following nodes: article, source, and event.
 We then train a graph neural network on it to predict fake news on article nodes or source nodes, depending on the graph we create.
