@@ -10,7 +10,7 @@ Install necessary packages:
 ```
 pip install -r requirement.txt
 ```
-To train an example graph (labeled on articles, contains around 9h of data from the beginning of october, 2023), you need to download it by following this link: https://drive.google.com/file/d/1TcLouPUhwaxTA83Z3RKXzCO_CMZeKqYC/view?usp=sharing.
+To train an example graph (labeled on articles, contains around 9h of data from the beginning of october, 2023), you need to download it by following this link (file too heavy to be put on GitHub): https://drive.google.com/file/d/1TcLouPUhwaxTA83Z3RKXzCO_CMZeKqYC/view?usp=sharing.
 
 Then put this file into a directory called "saved_graphs" at the root of the repo.
 You can then change some parameters of the model on the main.py file.
